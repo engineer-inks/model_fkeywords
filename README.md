@@ -27,6 +27,16 @@ Install:
 python3 setup.py bdist_wheel
 ```
 
+## Basic Installation
+
+* Step_1: install the project and create wheels file: comand_line$: python3 setup.py bdist_wheel
+* Step_2: Copy file this directory -> ~/dist/api-0.1.0-py3-none-any.whl
+* Step_3: Put the wheel file from root of directory or root the project
+* Step_4: Install the .whl -> comand_line$: pip install api-0.1.0-py3-none-any.whl
+* Step_5: Import the functions -> from api import nlextract
+* Step_6: Creating object of functions inside the whl -> extractor = nlextract.NLExtractor()
+* Step_7: Call the functions -> extractor.pattern_matcher, extractor.lemmatizer (all of functions stay in ## Usually Functions)
+
 ## Usually Functios
 
 * Cleaner
