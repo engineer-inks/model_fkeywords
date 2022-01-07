@@ -14,7 +14,7 @@ for instruction on how to build, run and test it.
 ```shell
 
 Install:
-pip install api/dist/api-0.1.0-py3-none-any.whl
+pip install api-0.1.0-py3-none-any.whl
 
 ```
 
