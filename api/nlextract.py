@@ -5,6 +5,7 @@ import spacy
 import subprocess
 import sys
 import unicodedata
+import nltk
 
 from nltk import FreqDist
 from nltk import stem
@@ -12,6 +13,8 @@ from nltk import download,data
 from nltk.stem import WordNetLemmatizer
 from nltk.util import ngrams
 from nltk.corpus import stopwords
+
+NLTK_STOPWORDS = nltk.corpus.stopwords.words('portuguese')
 
 class NLExtractor:
 
@@ -34,7 +37,7 @@ class NLExtractor:
             except LookupError:
                 download('stopwords')
             
-            cls._instance.spacy_nlp = spacy.load("pt_core_news_sm")           
+            cls._instance.spacy_nlp = cls._instance.spacy_nlp = spacy.load("pt_core_news_sm")       
 
         return cls._instance
     
@@ -77,7 +80,7 @@ class NLExtractor:
 
     def filter_stop_words(self, lst, additional_stop_words = []):
 
-        stop_words = stopwords.words('portuguese')
+        stop_words = NLTK_STOPWORDS
         stop_words.pop(stop_words.index('não'))
         if len(additional_stop_words) > 0:
             stop_words += additional_stop_words

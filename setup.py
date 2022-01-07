@@ -25,7 +25,7 @@ setup(
     install_requires=required_libs,
     tests_require=['pytest==4.4'],
     #TO-DO: Fix dependency links : not working with bdist_wheel
-    dependency_links = ["git+https://github.com/explosion/spacy-models/releases/download/pt_core_news_sm-2.3.0/pt_core_news_sm-2.3.0.tar.gz"],
+    dependency_links = ["git+https://github.com/explosion/spacy-models/releases/download/pt_core_news_sm-3.2.0/pt_core_news_sm-3.2.0.tar.gz"],
     test_suite='tests',
     
 )
