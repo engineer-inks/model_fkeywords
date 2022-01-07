@@ -7,7 +7,9 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This project was created by the [Myra Ink Team](https://github.com/myra-ink/model_fkeywords).
-for instruction on how to build, run and test it.
+Contact them for instruction on how to build, run and test it.
+This project generates wheel file, and allows installation in other IDE or Google Colab
+The project's internal directories have a Python notebook to use for testing.
 
 ## Install Model of API
 
