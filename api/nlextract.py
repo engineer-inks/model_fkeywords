@@ -21,10 +21,10 @@ class NLExtractor:
     def __init__(self):
       self.data_type =[]
 
-    def __init__(self):
+    def __new__(cls):
 
-        if self._instance is None:
-            self._instance = super().__new__(self)
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
             try:
                 data.find('stemmers/rslp')
             except LookupError:
@@ -34,10 +34,11 @@ class NLExtractor:
             except LookupError:
                 download('stopwords')
             
-            self._instance.spacy_nlp = spacy.load("pt_core_news_sm")           
+            cls._instance.spacy_nlp = spacy.load("pt_core_news_sm")           
 
-        return self    
+        return cls._instance
     
+
     def cleaner(self, string, custom_cleaner=''):
         
         #TO-DO: Keep Acronyms
@@ -58,6 +59,7 @@ class NLExtractor:
 
         return string
 
+
     def remove_special_characters(self,s):
         try:
             return ''.join(
@@ -72,6 +74,7 @@ class NLExtractor:
         string = re.split(r'\s+',string)
         return string
 
+
     def filter_stop_words(self, lst, additional_stop_words = []):
 
         stop_words = stopwords.words('portuguese')
@@ -80,16 +83,19 @@ class NLExtractor:
             stop_words += additional_stop_words
         return [token for token in lst if token not in stop_words]
 
+
     def stemmer(self, lst, version='nltk'):
 
         pt_stem = stem.RSLPStemmer()
         
         return [pt_stem.stem(t) for t in lst]
 
+
     def pos_tagger(self, lst, POS_TAGGER = './data/POS_tagger_bigram.pkl'):
         #TO-DO: Bug on Pos-tagger load
         pos_tagger = pickle.load(open(POS_TAGGER, 'rb'))
         return pos_tagger.tag(lst)
+
 
     def lemmatizer(self, pos_lst, parser='spacy'):
         nlp = NLExtractor._instance.spacy_nlp
@@ -120,11 +126,13 @@ class NLExtractor:
         except IOError as e:
             print('Error text_lema', e)        
             pass
-        
+
+
     def n_grams(self, lst, n_gram_size, filter_stop_words=False):
         n_grams_list = list(ngrams(lst,n_gram_size))
         return n_grams_list
         
+
     def histogram(self, lst, parser='spacy'):
         check_type = set([isinstance(el,list) for el in lst])
 
@@ -135,6 +143,7 @@ class NLExtractor:
             lst = sum(lst,[])
             
         return dict(FreqDist(lst))
+
 
     def pattern_matcher(self, text, pattern, mode="dictionary", anonymizer = False, custom_anonymizer = '<UNK>'):
 
@@ -176,6 +185,7 @@ class NLExtractor:
             print('Invalid Type.')
         
         return output
+
 
     def ner(self,text, parser='spacy', ner_type = '', anonymizer = False, custom_anonymizer = '<UNK>'):
         
@@ -230,6 +240,7 @@ class NLExtractor:
             "startIndex": start_index,
             "endIndex": end_index,
         }       
+
 
     def load_spacy_modules(self):
         try:
