@@ -6,9 +6,10 @@ jobs:
         auth:
           username: mydockerhub-user
           password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
-    working_directory: ~/dependency-maven-plugin-markers
+    working_directory: ~/repo
     steps:
       - checkout
+      - run: mvn -f path/to/pom.xml
       - run: mvn dependency:go-offline
       - run:
           name: maven build
