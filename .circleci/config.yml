@@ -1,22 +1,28 @@
-machine:
-  python:
-    version: 3.8.10
-dependencies:
-  pre:
-    - ./circleci-credential.sh
-    - pip install -r requirements.txt
-    # Install JFrog CLI
-    - curl -fL https://getcli.jfrog.io | sh
-
-deployment:
-  master:
-    branch: master
-    commands:
-    - python setup.py sdist upload -r local
-    - python setup.py bdist_wheel upload -r local
-    # Configure Artifactory instance with JFrog CLI
-    - ./jfrog config add --artifactory-url $ARTIFACTORY_URL --user $ARTIFACTORY_USER --apikey $ARTIFACTORY_PASSWORD --interactive=false
-    # Collect build environment variables and build tools information using JFrog CLI
-    - ./jfrog rt bce circleci-python-artifactory $CIRCLE_BUILD_NUM
-    # Publish build information to Artifactory
-    - ./jfrog rt bp circleci-python-artifactory $CIRCLE_BUILD_NUM
+version: 2
+jobs:
+  upload-artifact:
+    docker:
+      - image: circleci/openjdk:8-jdk
+        auth:
+          username: $ARTIFACTORY_USERNAME
+          password: $ARTIFACTORY_PASSWORD  # context / project UI env-var reference
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run: mvn dependency:go-offline
+      - run:
+          name: maven build
+          command: |
+            mvn clean install
+            ./circleci-credential.sh
+            pip install -r requirements.txt
+      - run:
+          name: Install JFrog CLI
+          command: curl -fL https://getcli.jfrog.io | sh
+      - run:
+          name: Push to Artifactory
+          command: |
+            ./jfrog config add <named_server_config> --artifactory-url $ARTIFACTORY_URL --user $ARTIFACTORY_USER --apikey $ARTIFACTORY_APIKEY --interactive=false
+            ./jfrog rt u <path/to/artifact> <artifactory_repo_name> --build-name=<name_you_give_to_build> --build-number=$CIRCLE_BUILD_NUM
+            ./jfrog rt bce <name_you_give_to_build> $CIRCLE_BUILD_NUM  # collects all environment variables on the agent
+            ./jfrog rt bp <name_you_give_to_build> $CIRCLE_BUILD_NUM  # attaches ^^ to the build in artifactory
