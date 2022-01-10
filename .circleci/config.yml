@@ -10,11 +10,11 @@ jobs:
     steps:
       - checkout
       - run: mvn dependency:go-offline
+      - run: -f path/to/pom.xml
       - run:
           name: maven build
           command: |
             mvn clean install
-            mvn -f path/to/pom.xml
       - run:
           name: Install JFrog CLI
           command: curl -fL https://getcli.jfrog.io | sh
