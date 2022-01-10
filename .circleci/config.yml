@@ -4,8 +4,8 @@ jobs:
     docker:
       - image: circleci/openjdk:8-jdk
         auth:
-          username: $ARTIFACTORY_USERNAME
-          password: $ARTIFACTORY_PASSWORD  # context / project UI env-var reference
+          username: mydockerhub-user
+          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
     working_directory: ~/repo
     steps:
       - checkout
