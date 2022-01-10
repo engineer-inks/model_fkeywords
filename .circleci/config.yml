@@ -2,7 +2,7 @@ version: 2
 jobs:     
   build:
     docker:
-      - image: circleci/openjdk:8-jdk
+      - image: circleci/openjdk:11-jdk
         auth:
           username: mydockerhub-user
           password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
@@ -13,7 +13,7 @@ jobs:
       - run:
           name: maven build
           command: |
-            mvn clean install -X
+            mvn clean install
       - run:
           name: Install JFrog CLI
           command: curl -fL https://getcli.jfrog.io | sh
