@@ -9,8 +9,7 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: mvn dependency:go-offline
-      - run: -f path/to/pom.xml
+      - run: mvn -f path/to/pom.xml && mvn dependency:go-offline
       - run:
           name: maven build
           command: |
