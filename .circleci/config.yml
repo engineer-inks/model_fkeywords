@@ -1,5 +1,14 @@
 version: 2
 jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:8-jdk
+        auth:
+          username: $ARTIFACTORY_USERNAME
+          password: $ARTIFACTORY_PASSWORD  # context / project UI env-var reference
+    steps:
+      - checkout # check out the code in the project directory
+      - run: echo "hello world" # run the `echo` command            
   upload-artifact:
     docker:
       - image: circleci/openjdk:8-jdk
