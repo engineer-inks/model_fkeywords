@@ -14,15 +14,13 @@ jobs:
           name: maven build
           command: |
             mvn clean install
-            ./circleci-credential.sh
-            pip install -r requirements.txt
       - run:
           name: Install JFrog CLI
           command: curl -fL https://getcli.jfrog.io | sh
       - run:
           name: Push to Artifactory
           command: |
-            ./jfrog config add <named_server_config> --artifactory-url $ARTIFACTORY_URL --user $ARTIFACTORY_USER --apikey $ARTIFACTORY_APIKEY --interactive=false
-            ./jfrog rt u <path/to/artifact> <artifactory_repo_name> --build-name=<name_you_give_to_build> --build-number=$CIRCLE_BUILD_NUM
-            ./jfrog rt bce <name_you_give_to_build> $CIRCLE_BUILD_NUM  # collects all environment variables on the agent
-            ./jfrog rt bp <name_you_give_to_build> $CIRCLE_BUILD_NUM  # attaches ^^ to the build in artifactory
+            ./jfrog config add local --artifactory-url https://dnaink.jfrog.io/artifactory/api/pypi/dna-ink-pypi --user $ARTIFACTORY_USERNAME --apikey $ARTIFACTORY_PASSWORD --interactive=false
+            ./jfrog rt u dna-ink-pypi/dna-ink-pypi --build-name=api-0.1.0-py3-none-any.whl --build-number=$CIRCLE_BUILD_NUM
+            ./jfrog rt bce api-0.1.0-py3-none-any.whl $CIRCLE_BUILD_NUM  # collects all environment variables on the agent
+            ./jfrog rt bp api-0.1.0-py3-none-any.whl $CIRCLE_BUILD_NUM  # attaches ^^ to the build in artifactory
