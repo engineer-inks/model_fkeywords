@@ -1,26 +1,238 @@
-version: 2
+version: 2.1
+
+orbs:
+  artifactory: jfrog/artifactory@dev:alpha
+  orb-tools: circleci/orb-tools@8.9.2
+
 jobs:
-  build:
-    docker:
-      - image: circleci/openjdk:8-jdk
-        auth:
-          username: mydockerhub-user
-          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
-    working_directory: ~/repo
+  all-commands:
+    executor: artifactory/machine
     steps:
       - checkout
-      - run: mvn dependency:go-offline
+      - artifactory/install
+      - artifactory/configure
+
       - run:
-          name: maven build
+          name: create sample artifact files
           command: |
-            mvn clean install
+            echo "not a jar" > artifact1.jar
+            echo "not a jar" > artifact2.jar
+      # test multiple files without spec
+      - artifactory/upload:
+          source: artifact*.jar
+          target: orb-testing/all-commands/no-file-spec/
+
+      # test with file spec
+      - artifactory/upload:
+          use-file-spec: true
+          file-spec: spec.json
+          spec-vars: spec-pattern=*.jar;spec-target=orb-testing/all-commands/file-spec/
+
+      - artifactory/build-integration
+
+      - artifactory/docker-login:
+          docker-registry: orbdemos-docker.jfrog.io
+
       - run:
-          name: Install JFrog CLI
-          command: curl -fL https://getcli.jfrog.io | sh
-      - run:
-          name: Push to Artifactory
+          name: build sample image
           command: |
-            ./jfrog config add artifactory-server --artifactory-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi --user=$ARTIFACTORY_USERNAME --password=$ARTIFACTORY_PASSWORD --interactive=false
-            ./jfrog rt u dna-ink-pypi --build-name=api-0.1.0-py3-none-any.whl --build-number=$CIRCLE_BUILD_NUM
-            ./jfrog rt bce api-0.1.0-py3-none-any.whl $CIRCLE_BUILD_NUM  # collects all environment variables on the agent
-            ./jfrog rt bp api-0.1.0-py3-none-any.whl $CIRCLE_BUILD_NUM  # attaches ^^ to the build in artifactory
+            docker build -t \
+              orbdemos-docker.jfrog.io/hello-world-default:1.0-${CIRCLE_BUILD_NUM} \
+              docker-publish-assets
+      - artifactory/docker-publish:
+          docker-tag: orbdemos-docker.jfrog.io/hello-world-default:1.0-${CIRCLE_BUILD_NUM}
+          repository: docker
+
+# yaml anchor filters
+integration-dev_filters: &integration-dev_filters
+  branches:
+    ignore: /.*/
+  tags:
+    only: /integration-.*/
+
+integration-master_filters: &integration-master_filters
+  branches:
+    ignore: /.*/
+  tags:
+    only: /master-.*/
+
+prod-deploy_requires: &prod-deploy_requires
+  [
+    test-all-commands-master,
+    test-upload-master,
+    test-publish-master,
+    test-publish-custom-master
+  ]
+
+workflows:
+  lint_pack-validate_publish-dev:
+    jobs:
+      - orb-tools/lint:
+          lint-dir: src
+
+      - orb-tools/pack:
+          requires:
+            - orb-tools/lint
+
+      - orb-tools/publish-dev:
+          orb-name: jfrog/artifactory
+          requires:
+            - orb-tools/pack
+
+      - orb-tools/trigger-integration-workflow:
+          name: trigger-integration-dev
+          ssh-fingerprints: # fill in your fingerprint here
+          cleanup-tags: true
+          requires:
+            - orb-tools/publish-dev
+          filters:
+            branches:
+              ignore: master
+
+      - orb-tools/trigger-integration-workflow:
+          name: trigger-integration-master
+          ssh-fingerprints: # fill in your fingerprint here
+          cleanup-tags: true
+          tag: master
+          requires:
+            - orb-tools/publish-dev
+          filters:
+            branches:
+              only: master
+
+  integration_tests-prod_deploy:
+    jobs:
+      # triggered by non-master branch commits
+      - all-commands:
+          name: test-all-commands-dev
+          filters: *integration-dev_filters
+
+      - artifactory/upload:
+          name: test-upload-dev
+          source: artifact*.jar
+          target: orb-testing/upload-job/no-file-spec/
+          build-steps:
+            - run:
+                name: create sample artifact files
+                command: |
+                  echo "not a jar" > artifact1.jar
+                  echo "not a jar" > artifact2.jar
+          filters: *integration-dev_filters
+
+      - artifactory/upload:
+          name: test-upload-file-spec-dev
+          use-file-spec: true
+          file-spec: spec.json
+          spec-vars: spec-pattern=*.jar;spec-target=orb-testing/upload-job/file-spec/
+          build-steps:
+            - run:
+                name: create sample artifact files
+                command: |
+                  echo "not a jar" > artifact1.jar
+                  echo "not a jar" > artifact2.jar
+          filters: *integration-dev_filters
+
+      - artifactory/docker-publish:
+          name: test-publish-dev
+          docker-registry: orbdemos-docker.jfrog.io
+          repository: docker
+          build-name: hello-alpine
+          docker-tag: orbdemos-docker.jfrog.io/hello-world-default:1.0-${CIRCLE_BUILD_NUM}
+          pre-steps: [checkout, run: "cp docker-publish-assets/* ."]
+          filters: *integration-dev_filters
+
+      - artifactory/docker-publish:
+          name: test-publish-custom-dev
+          docker-registry: orbdemos-docker.jfrog.io
+          repository: docker
+          build-name: hello-alpine-custom
+          docker-tag: orbdemos-docker.jfrog.io/hello-alpine-custom:1.0-${CIRCLE_BUILD_NUM}
+          docker-steps:
+            - run: echo ${DOCKERTAG}
+            - run: jfrog rt dl local-generic/artifact.jar docker-publish-assets/ --build-name=hello-alpine-custom --build-number=${CIRCLE_BUILD_NUM}
+            - run: docker build -t $DOCKERTAG docker-publish-assets
+          filters: *integration-dev_filters
+
+      # triggered by master branch commits
+      - all-commands:
+          name: test-all-commands-master
+          filters: *integration-master_filters
+
+      - artifactory/upload:
+          name: test-upload-master
+          source: artifact*.jar
+          target: orb-testing/upload-job/no-file-spec/
+          build-steps:
+            - run:
+                name: create sample artifact files
+                command: |
+                  echo "not a jar" > artifact1.jar
+                  echo "not a jar" > artifact2.jar
+          filters: *integration-master_filters
+
+      - artifactory/upload:
+          name: test-upload-file-spec-master
+          use-file-spec: true
+          file-spec: spec.json
+          spec-vars: spec-pattern=*.jar;spec-target=orb-testing/upload-job/file-spec/
+          build-steps:
+            - run:
+                name: create sample artifact files
+                command: |
+                  echo "not a jar" > artifact1.jar
+                  echo "not a jar" > artifact2.jar
+          filters: *integration-master_filters
+
+      - artifactory/docker-publish:
+          name: test-publish-master
+          docker-registry: orbdemos-docker.jfrog.io
+          repository: docker
+          build-name: hello-alpine
+          docker-tag: orbdemos-docker.jfrog.io/hello-world-default:1.0-${CIRCLE_BUILD_NUM}
+          pre-steps: [checkout, run: "cp docker-publish-assets/* ."]
+          filters: *integration-master_filters
+
+      - artifactory/docker-publish:
+          name: test-publish-custom-master
+          docker-registry: orbdemos-docker.jfrog.io
+          repository: docker
+          build-name: hello-alpine-custom
+          docker-tag: orbdemos-docker.jfrog.io/hello-alpine-custom:1.0-${CIRCLE_BUILD_NUM}
+          docker-steps:
+            - run: echo ${DOCKERTAG}
+            - run: jfrog rt dl local-generic/artifact.jar docker-publish-assets/ --build-name=hello-alpine-custom --build-number=${CIRCLE_BUILD_NUM}
+            - run: docker build -t $DOCKERTAG docker-publish-assets
+          filters: *integration-master_filters
+
+      # patch, minor, or major publishing
+      - orb-tools/dev-promote-prod:
+          name: dev-promote-patch
+          orb-name: jfrog/artifactory
+          requires: *prod-deploy_requires
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /master-patch.*/
+
+      - orb-tools/dev-promote-prod:
+          name: dev-promote-minor
+          orb-name: jfrog/artifactory
+          release: minor
+          requires: *prod-deploy_requires
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /master-minor.*/
+
+      - orb-tools/dev-promote-prod:
+          name: dev-promote-major
+          orb-name: jfrog/artifactory
+          release: major
+          requires: *prod-deploy_requires
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /master-major.*/
