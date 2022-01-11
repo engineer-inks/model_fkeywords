@@ -9,7 +9,7 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: mvn dependency:go-offline -X
+      - run: mvn dependency-plugin:3.1.2:go-offline -X
       - run:
           name: maven build
           command: |
