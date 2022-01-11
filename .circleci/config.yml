@@ -2,7 +2,7 @@ version: 2
 jobs:     
   build:
     docker:
-      - image: circleci/openjdk:8-jdk
+      - image: circleci/openjdk:stretch
         auth:
           username: mydockerhub-user
           password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
@@ -13,9 +13,9 @@ jobs:
       - checkout
       - restore_cache:
           keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
             - v1-dependencies-
-            # - v1-dependencies-{{ checksum "pom.xml" }}
-      - run: mvn -f path/to/pom.xml
+      - run: ./mvnw -Dmaven.test.skip=true package
       - run: mvn dependency:go-offline -X
       - save_cache:
           paths:
