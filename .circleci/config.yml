@@ -20,7 +20,7 @@ jobs:
       - run:
           name: Push to Artifactory
           command: |
-            ./jfrog config add dna-ink-pypi --artifactory-url https://inkdna.jfrog.io/artifactory/dna-ink-pypi/ --user $ARTIFACTORY_USERNAME --apikey $ARTIFACTORY_PASSWORD --interactive=false
+            ./jfrog config add dna-ink-pypi --artifactory-url https://inkdna.jfrog.io/artifactory/dna-ink-pypi/ --user $ARTIFACTORY_USERNAME --password $ARTIFACTORY_PASSWORD --interactive=false
             ./jfrog rt u dna-ink-pypi/ --build-name=api-0.1.0-py3-none-any.whl --build-number=$CIRCLE_BUILD_NUM
             ./jfrog rt bce api-0.1.0-py3-none-any.whl $CIRCLE_BUILD_NUM  # collects all environment variables on the agent
             ./jfrog rt bp api-0.1.0-py3-none-any.whl $CIRCLE_BUILD_NUM  # attaches ^^ to the build in artifactory
