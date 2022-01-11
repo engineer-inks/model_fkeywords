@@ -9,7 +9,7 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: mvn --fail-never dependency:go-offline || true
+      - run: mvn --fail-never dependency:go-offline || true -X
       - run:
           name: maven build
           command: |
