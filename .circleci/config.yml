@@ -6,24 +6,12 @@ jobs:
   build:
     docker:
       - image: circleci/python:3.7.6
-        auth:
-          username: mydockerhub-user
-          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
-    working_directory: ~/repo
     steps:
       - checkout
-      #- run: mvn dependency:go-offline -X
-      #- run:
-      #    name: maven build
-      #    command: |
-      #      mvn clean install
       - run:
-          name: Install JFrog CLI
-          command: curl -fL https://getcli.jfrog.io | sh
-      - run:
-          name: Push to Artifactory
+          name: Publishing wheel to JFrog
           command: |
-            python3 -m pip install --upgrade pip
+            set -e
             pip install -r requirements.txt
             pip install --upgrade twine
             bash -c "python3 setup.py bdist_wheel && twine upload --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi -u $ARTIFACTORY_USERNAME -p $ARTIFACTORY_PASSWORD dist/*"
