@@ -15,6 +15,7 @@ jobs:
           keys:
             - v1-dependencies-
             # - v1-dependencies-{{ checksum "pom.xml" }}
+      - run: mvn -f path/to/pom.xml
       - run: mvn dependency:go-offline -X
       - save_cache:
           paths:
