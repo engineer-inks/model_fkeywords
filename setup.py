@@ -7,6 +7,7 @@ from distutils.command.install import install as _install
 import spacy
 import subprocess
 import sys
+import os
 
 required_libs = ['api',
 'numpy', 'nltk', 
@@ -14,19 +15,23 @@ required_libs = ['api',
 'scikit-learn', 'wordcloud',
  'spacy', 'kneebow', 'regex', 'seaborn']
 
+PROJECT_DIR = os.path.dirname(__file__)
+DEPENDENCIES = open(os.path.join(PROJECT_DIR, 'requirements.txt')).readlines()
+
 setup(
    
     name='api',
-    packages=find_packages(include=required_libs),
     version='0.1.0',
     description='A Natural Language Processing Library',
     author='Eneas Rodrigues',
     license='MIT',
-    install_requires=required_libs,
-    tests_require=['pytest==4.4'],
+    packages=find_packages(include=['api.*']),
+    install_requires=[d for d in DEPENDENCIES if '://' not in d],
+    python_requires='>=3.7',
     #TO-DO: Fix dependency links : not working with bdist_wheel
     dependency_links = ["git+https://github.com/explosion/spacy-models/releases/download/pt_core_news_sm-3.2.0/pt_core_news_sm-3.2.0.tar.gz"],
-    test_suite='tests',
+    tests_require=['pytest', 'parameterized'],
+    zip_safe=False
     
 )
 

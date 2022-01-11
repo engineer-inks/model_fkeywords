@@ -1,3 +1,25 @@
 PyYAML==5.1
 django-rss-plugin==0.0.9
-nltk==3.4.5
+
+## Visualization
+seaborn==0.11.1
+
+## Text
+nltk==3.6.5
+spacy==3.0.3
+# Datetime
+pendulum==2.0.5
+
+
+# APIs
+requests==2.26.0
+pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
+gensim==4.0.0
+pandas>=0.20.3
+
+pytest
+wordcloud>=1.8.1
+pyspark==3.1.1
+kneebow
+regex
+cython
