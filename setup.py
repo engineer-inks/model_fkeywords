@@ -3,17 +3,7 @@ from setuptools.command.install import install
 from setuptools import setup, find_packages
 from distutils.command.install import install as _install
 
-
-import spacy
-import subprocess
-import sys
 import os
-
-required_libs = ['api',
-'numpy', 'nltk', 
-'cython', 'gensim','pyspark', 
-'scikit-learn', 'wordcloud',
- 'spacy', 'kneebow', 'regex', 'seaborn']
 
 PROJECT_DIR = os.path.dirname(__file__)
 DEPENDENCIES = open(os.path.join(PROJECT_DIR, 'requirements.txt')).readlines()
