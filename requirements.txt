@@ -24,3 +24,4 @@ kneebow
 regex
 cython
 distutils
+twine
