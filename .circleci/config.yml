@@ -12,6 +12,7 @@ jobs:
           name: Publishing wheel to JFrog
           command: |
             set -e
+            echo -e "[global]\index-url = https://$ARTIFACTORY_USERNAME:$ARTIFACTORY_PASSWORD@inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi/simple" >> ~/*
             pip install -r requirements.txt
             pip install --upgrade twine
             bash -c "python3 setup.py bdist_wheel && twine upload --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi -u $ARTIFACTORY_USERNAME -p $ARTIFACTORY_PASSWORD dist/*"
