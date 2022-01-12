@@ -14,7 +14,7 @@ setup(
     description='A Natural Language Processing Library',
     author='Eneas Rodrigues',
     license='MIT',
-    packages=find_packages(include=['api_model.*']),
+    packages=find_packages(include=['api_model']),
     install_requires=[d for d in DEPENDENCIES if '://' not in d],
     python_requires='>=3.7',
     #TO-DO: Fix dependency links : not working with bdist_wheel
