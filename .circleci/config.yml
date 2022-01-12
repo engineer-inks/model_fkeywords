@@ -2,10 +2,15 @@ version: 2
 orbs:
   python: circleci/python@0.2.1
   gcp-cli: circleci/gcp-cli@2.1.0
+deployment:
+  production:
+    branch: "master"
+    commands:
+      - chmod +x config/.env
 jobs:
   build:
     docker:
-      - image: circleci/python:3.7.6
+      - image: circleci/python:3.7.6      
     steps:
       - checkout
       - run:
