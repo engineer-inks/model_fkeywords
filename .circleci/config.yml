@@ -2,28 +2,22 @@ version: 2
 orbs:
   python: circleci/python@0.2.1
   gcp-cli: circleci/gcp-cli@2.1.0
-deployment:
-  production:
-    branch: "master"
-    commands:
-      - chmod +x config/.env
 jobs:
   build:
     docker:
       - image: circleci/python:3.7.6      
     steps:
-      - checkout
-      - run:
-          name: "Setup export environment variables"
-          command: echo 'export ENV=local' >> $config/.env      
+      - checkout   
       - run:
           name: Publishing wheel to JFrog
           command: |
             set -e
             mkdir /home/circleci/.pip        
             echo -e "[global]\index-url = https://$JFROG_USERNAME:$JFROG_PASSWORD@inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi/simple" >> /home/circleci/.pip/pip.conf
+            export config/.env
+            export ENV=local
             pip config list -v
             pip install --upgrade pip
             pip install -r requirements.txt
             pip install --upgrade twine
-            bash -c "python3 setup.py bdist_wheel && twine upload -u $JFROG_USERNAME -p $JFROG_PASSWORD --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi dist/* --verbose"
+            bash -c "python3 setup.py bdist_wheel && twine upload -u '$JFROG_USERNAME' -p '$JFROG_PASSWORD' --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi dist/* --verbose"
