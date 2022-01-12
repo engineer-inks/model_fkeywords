@@ -7,13 +7,7 @@ jobs:
     docker:
       - image: circleci/python:3.7.6      
     steps:
-      - checkout
-      - run:
-          name: "Setup custom environment variables"
-          command: echo 'export $JFROG_USERNAME' >> $ENV
-      - run: # print the name of the branch we're on
-          name: "Variable Value"
-          command: echo ${JFROG_USERNAME}    
+      - checkout 
       - run:
           name: Publishing wheel to JFrog
           command: |
