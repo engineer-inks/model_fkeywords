@@ -5,9 +5,16 @@ orbs:
 jobs:
   build:
     docker:
-      - image: circleci/python:3.7.6      
+      - image: circleci/python:3.7.6
+    environment:
+      ENV: config/local/.env
     steps:
-      - checkout 
+      - checkout
+      - run:
+          name: "echo my env context"
+          command: |
+            echo $JFROG_USERNAME
+            echo $JFROG_PASSWORD
       - run:
           name: Publishing wheel to JFrog
           command: |
@@ -19,4 +26,4 @@ jobs:
             pip install --upgrade pip
             pip install -r requirements.txt
             pip install --upgrade twine
-            bash -c "python3 setup.py bdist_wheel && twine upload --username=${JFROG_USERNAME} --password="$JFROG_PASSWORD" --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi dist/* --verbose"
+            bash -c "python3 setup.py bdist_wheel && twine upload --username=$JFROG_USERNAME --password="$JFROG_PASSWORD" --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi dist/* --verbose"
