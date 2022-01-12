@@ -18,5 +18,4 @@ jobs:
             pip install --upgrade pip
             pip install -r requirements.txt
             pip install --upgrade twine
-            bash -c "twine upload dist/*"
             bash -c "python3 setup.py bdist_wheel && twine upload -u $ARTIFACTORY_USERNAME -p $ARTIFACTORY_PASSWORD --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi dist/*"
