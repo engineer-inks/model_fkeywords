@@ -15,13 +15,12 @@ jobs:
           command: |
             echo $JFROG_USERNAME
             echo $JFROG_PASSWORD
-            echo 'check content $ENV'
       - run:
           name: Publishing wheel to JFrog
           command: |
             set -e
             mkdir /home/circleci/.pip     
-            export ENV=config/local/.env
+            export ENV=local
             echo -e "[global]\index-url = https://$JFROG_USERNAME:$JFROG_PASSWORD@inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi/simple" >> /home/circleci/.pip/pip.conf
             pip config list -v
             pip install --upgrade pip
