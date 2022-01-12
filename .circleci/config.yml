@@ -11,10 +11,11 @@ jobs:
     steps:
       - checkout
       - run:
-          name: "echo my env context"
+          name: "Check Environment of Project"
           command: |
             echo $JFROG_USERNAME
             echo $JFROG_PASSWORD
+            echo 'check content $ENV'
       - run:
           name: Publishing wheel to JFrog
           command: |
