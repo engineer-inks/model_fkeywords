@@ -12,7 +12,7 @@ jobs:
           name: Publishing wheel to JFrog
           command: |
             set -e
-            cp temp.env ~/config/.env
+            cp /home/circleci/temp.env ~/config/.env
             export ENV=local
             mkdir /home/circleci/.pip
             echo -e "[global]\index-url = https://$JFROG_USERNAME:$JFROG_PASSWORD@inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi/simple" >> /home/circleci/.pip/pip.conf
