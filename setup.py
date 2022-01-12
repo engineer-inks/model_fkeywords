@@ -7,15 +7,14 @@ import os
 
 PROJECT_DIR = os.path.dirname(__file__)
 DEPENDENCIES = open(os.path.join(PROJECT_DIR, 'requirements.txt')).readlines()
-required_libs = ['api']
 
 setup(
-    name='api',
+    name='model_fkeywords',
     version='0.1.0',
     description='A Natural Language Processing Library',
     author='Eneas Rodrigues',
     license='MIT',
-    packages=find_packages(include=required_libs),
+    packages=find_packages(include=['api_model.*']),
     install_requires=[d for d in DEPENDENCIES if '://' not in d],
     python_requires='>=3.7',
     #TO-DO: Fix dependency links : not working with bdist_wheel
