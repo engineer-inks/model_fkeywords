@@ -12,6 +12,7 @@ jobs:
           name: Publishing wheel to JFrog
           command: |
             set -e
+            cp temp.env ~/config/.env
             export ENV=local
             mkdir /home/circleci/.pip
             echo -e "[global]\index-url = https://$JFROG_USERNAME:$JFROG_PASSWORD@inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi/simple" >> /home/circleci/.pip/pip.conf
@@ -20,3 +21,4 @@ jobs:
             pip install -r requirements.txt
             pip install --upgrade twine
             bash -c "python3 setup.py bdist_wheel && twine upload -u $JFROG_USERNAME -p $JFROG_PASSWORD --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi dist/* --verbose"
+            rm temp.env
