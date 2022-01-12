@@ -255,7 +255,25 @@ class NLExtractor:
             print('python -m spacy download pt_core_news_sm')
             print('before using spaCy modules')
             _spacy_load = None
-            
 
+
+    def udf_type_keywords(self, text, pattern,  mode="dictionary"):
+        """
+        Search pattern in text and return what was found separated by pipe
+        """
+
+        if mode == "dictionary" or isinstance(pattern, dict):
+            if isinstance(pattern, list):
+                pattern = {p:[] for p in pattern}
+                mentions = []
+                for word in pattern:
+                    regx = fr'\b{word}\b'
+
+                    n_mentions = len(re.findall(regx, text))
+                    if n_mentions:
+                        mentions.append(word)
+                return '|'.join(mentions)
+        return None            
+            
     #TO-DO: Datetime Converter
 
