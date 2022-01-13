@@ -16,7 +16,7 @@ The project's internal directories have a Python notebook to use for testing.
 ```shell
 
 Install:
-pip install api-0.1.0-py3-none-any.whl
+pip install https://inkdna.jfrog.io/artifactory/dna-ink-pypi/model-fkeywords/0.1.0/model_fkeywords-0.1.0-py3-none-any.whl
 
 ```
 
