@@ -278,14 +278,13 @@ class NLExtractor:
 
     def udf_clean_text(self, text):
         out = []
-        lem_ = re.sub(r'[^\w\s]','',text)
-        for i in lem_:
+        for i in text:
             out.append(self.remove_special_characters(i.text))
         return out
 
 
     def udf_teste(self, message):
-        return print(self.message)    
+        return print(message)
             
     #TO-DO: Datetime Converter
 
