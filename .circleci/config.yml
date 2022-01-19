@@ -26,4 +26,4 @@ jobs:
             pip install --upgrade pip
             pip install -r requirements.txt
             pip install --upgrade twine
-            bash -c "python3 setup.py bdist_wheel && twine upload --username=$JFROG_USERNAME --password="$JFROG_PASSWORD" --repository-url https://dnaink.jfrog.io/artifactory/dna-ink-pypi dist/* --verbose"
+            bash -c "python3 setup.py bdist_wheel && twine upload --username=$JFROG_USERNAME --password="$JFROG_PASSWORD" --repository-url https://dnaink.jfrog.io/artifactory/api/pypi/dna-ink-pypi dist/* --verbose"
