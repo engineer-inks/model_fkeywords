@@ -277,10 +277,23 @@ class NLExtractor:
 
 
     def udf_clean_text(self, text):
-        out = []
-        for i in text:
-            out.append(self.remove_special_characters(i.text))
-        return out
+        nlp = NLExtractor._instance.spacy_nlp
+            
+        if self._spacy_load == None:
+            nlp = self.load_spacy_modules()
+        else:
+            nlp = self._spacy_load
+
+        if nlp == None:
+            return []
+        try:        
+            out = []
+            for i in nlp(str(text)):
+                out.append(self.remove_special_characters(i.text))
+            return ' '.join(' '.join(out).strip().split())
+        except IOError as e:
+            print('Error clean text', e)        
+            pass
 
 
     def udf_teste(self, message):
