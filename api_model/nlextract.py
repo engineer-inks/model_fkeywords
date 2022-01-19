@@ -273,7 +273,11 @@ class NLExtractor:
                     if n_mentions:
                         mentions.append(word)
                 return '|'.join(mentions)
-        return None            
+        return None
+
+
+    def udf_teste(self):
+        return print(self)          
             
     #TO-DO: Datetime Converter
 
