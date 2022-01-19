@@ -21,9 +21,9 @@ jobs:
             set -e
             mkdir /home/circleci/.pip     
             export ENV=local
-            echo -e "[global]\index-url = https://$JFROG_USERNAME:$JFROG_PASSWORD@inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi/simple" >> /home/circleci/.pip/pip.conf
+            echo -e "[global]\index-url = https://$JFROG_USERNAME:$JFROG_PASSWORD@dnaink.jfrog.io/artifactory/api/pypi/dna-ink-pypi/simple" >> /home/circleci/.pip/pip.conf
             pip config list -v
             pip install --upgrade pip
             pip install -r requirements.txt
             pip install --upgrade twine
-            bash -c "python3 setup.py bdist_wheel && twine upload --username=$JFROG_USERNAME --password="$JFROG_PASSWORD" --repository-url https://inkdna.jfrog.io/artifactory/api/pypi/dna-ink-pypi dist/* --verbose"
+            bash -c "python3 setup.py bdist_wheel && twine upload --username=$JFROG_USERNAME --password="$JFROG_PASSWORD" --repository-url https://dnaink.jfrog.io/artifactory/dna-ink-pypi dist/* --verbose"
