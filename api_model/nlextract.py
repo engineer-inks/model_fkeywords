@@ -296,8 +296,8 @@ class NLExtractor:
             pass
 
 
-    def udf_teste(self, message):
-        return print(message)
+    def udf_multiplicacao(x, y):
+        return x * y
             
     #TO-DO: Datetime Converter
 
