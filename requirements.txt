@@ -1,3 +1,4 @@
+importlib-metadata
 PyYAML==5.1
 django-rss-plugin==0.0.9
 
