@@ -296,7 +296,7 @@ class NLExtractor:
             pass
 
 
-    def udf_multiplicacao(x, y):
+    def udf_multiplicacao(self, x, y):
         return x * y
             
     #TO-DO: Datetime Converter

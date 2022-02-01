@@ -15,11 +15,9 @@ pendulum==2.0.5
 requests==2.26.0
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
 gensim>=4.0.0
-pandas
 
 pytest
 wordcloud>=1.8.1
-pyspark==3.1.1
 kneebow
 regex
 cython
