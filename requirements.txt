@@ -1,4 +1,5 @@
 importlib-metadata
+openpyxl>=3.0.9
 PyYAML==5.1
 django-rss-plugin==0.0.9
 
