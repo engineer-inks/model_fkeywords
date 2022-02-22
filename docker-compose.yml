@@ -1,0 +1,25 @@
+version: '3'
+services:
+  find-keywords:
+    build:
+      context: .
+      args:
+        config_path: config/$ENV
+        base_image: bitnami/jupyter-base-notebook
+    container_name: find-keywords-container
+    user: root
+    image: dna/$SERVICE
+    working_dir: /opt/dna/$SERVICE
+    env_file:
+      - config/$ENV/.env
+    #  - .env
+    ports:
+      - ${JUPYTER_PORT-8082}:${JUPYTER_PORT-8082}
+    volumes:
+      - .:/opt/dna/$SERVICE
+      - .:/src # Used by pre-commit on pytest step
+      - ./config/$ENV:/home/jovyan/dna
+      - ./datalake:/datalake
+      - ./datalake/scikit_learn_data:/home/jovyan/scikit_learn_data
+      - ./config/$ENV:/opt/myra/configs/cluster/
+    entrypoint: ./config/$ENV/actions/run.sh

@@ -1,0 +1,15 @@
+logging:
+  default:
+    level: DEBUG
+    format: '%(message)s'
+  processors:
+    describe: |-
+      %(processor)s
+        inputs:    %(inputs)s
+        processed: %(proc)s
+        outputs:   %(outputs)s
+    profile: |-
+        execution started at: %(started_at)s
+        load time: %(load_t)s seconds
+        proc time: %(proc_t)s seconds
+        save time: %(save_t)s seconds
