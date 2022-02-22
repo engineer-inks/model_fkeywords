@@ -2,6 +2,7 @@ import regex
 import re
 import pickle
 import spacy
+import logging
 import subprocess
 import sys
 import unicodedata
@@ -13,6 +14,7 @@ from nltk import download,data
 from nltk.stem import WordNetLemmatizer
 from nltk.util import ngrams
 from nltk.corpus import stopwords
+
 
 NLTK_STOPWORDS = nltk.corpus.stopwords.words('portuguese')
 
@@ -56,6 +58,7 @@ class NLExtractor:
         string = re.sub(r"\:", " : ", string)
         string = re.sub(r"\.", " . ", string)
         string = re.sub(r"\$", "  ", string)
+        string = re.sub(r"\-", "  ", string)
         string = re.sub(r"\s{2,}", " ", string)
 
         string = string.strip()
@@ -70,7 +73,32 @@ class NLExtractor:
                 if unicodedata.category(c) not in ['Mn', 'N'] and c.isalpha()
             ).lower()
         except IOError as e:
-            print('Error tokenize', e)    
+            print('Error tokenize', e)
+
+
+    def udf_split_text(self, text):
+    
+        if type(text) == str:
+            text = text.encode()
+        else :
+            text = text.astype(str).encode()
+        for x in text.decode().replace('\n', ' ').split(' '):
+            yield x
+
+
+    def udf_clean_text(self, text):
+        try:
+            text = self.cleaner(text)
+            logging.info(f'Sucess separed pontuation {text}')   
+            out = []
+            for x in self.udf_split_text(text):
+                this_text = self.remove_special_characters(x)
+                if len(this_text) > 2:
+                    out.append(this_text)
+            logging.info('Sucess clean_text')                    
+            return ' '.join(' '.join(out).strip().split())
+        except IOError:
+            logging.info('Error clean_text')
 
 
     def tokenizer(self, string):
@@ -276,28 +304,14 @@ class NLExtractor:
         return None
 
 
-    def udf_clean_text(self, text):
-        nlp = NLExtractor._instance.spacy_nlp
-            
-        if self._spacy_load == None:
-            nlp = self.load_spacy_modules()
-        else:
-            nlp = self._spacy_load
-
-        if nlp == None:
-            return []
-        try:        
-            out = []
-            for i in nlp(str(text)):
-                out.append(self.remove_special_characters(i.text))
-            return ' '.join(' '.join(out).strip().split())
-        except IOError as e:
-            print('Error clean text', e)        
-            pass
-
-
-    def udf_multiplicacao(self, x, y):
-        return x * y
+    def udf_extract_digits(self, text, pattern):
+        document_terms = []
+        
+        cont_pattern = fr'\d{pattern}\s'
+        for match in re.finditer(cont_pattern, str(text)):
+            document_terms.append(match.group().strip())
+    
+        return document_terms        
             
     #TO-DO: Datetime Converter
 
