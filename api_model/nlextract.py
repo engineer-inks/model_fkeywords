@@ -307,11 +307,26 @@ class NLExtractor:
     def udf_extract_digits(self, text, pattern):
         document_terms = []
         
-        cont_pattern = fr'\d{pattern}\s'
-        for match in re.finditer(cont_pattern, str(text)):
+        cont_pattern = pattern
+        for match in re.finditer(cont_pattern, str(text),re.IGNORECASE):
             document_terms.append(match.group().strip())
-    
-        return document_terms        
-            
+
+        document_terms = self.remove_duplicates(document_terms)
+        return document_terms
+
+
+    def remove_duplicates(self, lista):
+        l = []
+        for i in lista:
+            if i not in l:
+                l.append(i)
+        l.sort()
+        return l
+
+
+    def remove_specific_numbers(self, lst, numbers):
+        return [token for token in lst if token not in numbers]    
+     
+        
     #TO-DO: Datetime Converter
 
