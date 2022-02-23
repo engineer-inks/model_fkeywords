@@ -312,7 +312,8 @@ class NLExtractor:
             document_terms.append(match.group().strip())
 
         document_terms = self.remove_duplicates(document_terms)
-        return document_terms
+        document_terms = [re.sub('[^a-z0-9 ]+', '', str(document_terms))]
+        return ''.join(','.join(document_terms).strip()).split()
 
 
     def remove_duplicates(self, lista):
@@ -326,7 +327,7 @@ class NLExtractor:
 
     def remove_specific_numbers(self, lst, numbers):
         return [token for token in lst if token not in numbers]    
-     
-        
+
+
     #TO-DO: Datetime Converter
 
