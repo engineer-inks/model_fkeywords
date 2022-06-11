@@ -7,6 +7,7 @@ LABEL maintainer="ink@myrabr.com"
 
 ## install image of python 3 last version
 RUN python -m pip install --root --upgrade pip
+RUN pip install install-jdk
 ADD requirements.txt .
 RUN pip install -r requirements.txt
 RUN pip install --upgrade setuptools

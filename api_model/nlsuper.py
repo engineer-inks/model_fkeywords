@@ -14,7 +14,8 @@ class NlExtractorProcess(NLExtractor):
                 column_text: str,
                 whats_process: str,
                 list_pattern: dict,
-                id_database: str):
+                id_database: str,
+                type_find: str):
 
         self.filename = filename
         self.prefix = prefix
@@ -23,6 +24,7 @@ class NlExtractorProcess(NLExtractor):
         self.whats_process = whats_process
         self.list_pattern = list_pattern
         self.id_database = id_database
+        self.type_find = type_find
 
         super().__init__(self.call_process(
                             filename=filename,
@@ -31,7 +33,8 @@ class NlExtractorProcess(NLExtractor):
                             column_text=column_text,
                             whats_process=whats_process,
                             list_pattern=list_pattern,
-                            id_database=id_database
+                            id_database=id_database,
+                            type_find=type_find
                             ))
 
     
@@ -43,25 +46,33 @@ class NlExtractorProcess(NLExtractor):
         column_text,
         whats_process,
         list_pattern,
-        id_database):
+        id_database,
+        type_find):
         
         """
         whats_process = 'complete'
             return: process all pipeline
         whats_process = 'partial'
             return: remove pontuation, findkeywords and process bigrams
+        whats_process = 'only_keywords_bigram'
+            return: findkeywords and process bigrams
         whats_process = 'only_keywords'
-            return: findkeywords and process bigrams         
+            return: findkeywords       
         """
         
         df_prefix = f'{prefix}'
+        path_read = '/content/'
+        path_save = '/drive/My Drive/'
 
-        print(f'read file {df_prefix}')
+        path_read_datalake = '/opt/dna/find-keywords/datalake/'
+        path_save_datalake = '/opt/dna/find-keywords/datalake/'
+
+        print(f'read file {path_read_datalake}/{df_prefix}')
         if df_prefix == 'xlsx':
-            df = pd.read_excel(f"{filename}.{prefix}", engine='openpyxl')
+            df = pd.read_excel(f"{path_read_datalake}/{filename}.{prefix}", engine='openpyxl')
             print(f'eschema of dataframe is {df.info()}')
         if df_prefix == 'CSV':
-            df = pd.read_csv(f"{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
+            df = pd.read_csv(f"{path_read_datalake}/{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
             print(f'eschema of dataframe is {df.info()}')
 
         print('convert column_text column to string type')
@@ -79,7 +90,10 @@ class NlExtractorProcess(NLExtractor):
             print(f'dict: {list_pattern}')
             try:
                 for key in list_pattern:
-                    df[key] =  df[column_text].apply(lambda x: self.udf_type_keywords(x,list_pattern[key],mode="dictionary"))
+                    if type_find == 'fixo':
+                        df[key] =  df[column_text].apply(lambda x: self.udf_type_keywords(x,list_pattern[key],mode="dictionary"))
+                    else:
+                        df[key] =  df[column_text].apply(lambda x: self.pattern_matcher(x,list_pattern[key],mode="dictionary"))
             except IOError as e:
                 print(f'não tem mais listas para rodar dados {e}')
             pass
@@ -101,13 +115,78 @@ class NlExtractorProcess(NLExtractor):
 
             print('convert to pandas again')
             df = df_pandas.toPandas()
-            df_merge = pd.merge(df_pandas,df)            
+            df_merge = pd.merge(df_pandas,df)
 
+        if whats_process == 'partial':
+            
+            print('remove pontuation')
+            df[column_text] =  df[column_text].apply(self.cleaner)
+
+            print('collect words and find in column_text')
+            print(f'dict: {list_pattern}')
+            try:
+                for key in list_pattern:
+                    if type_find == 'fixo':
+                        df[key] =  df[column_text].apply(lambda x: self.udf_type_keywords(x,list_pattern[key],mode="dictionary"))
+                    else:
+                        df[key] =  df[column_text].apply(lambda x: self.pattern_matcher(x,list_pattern[key],mode="dictionary"))
+            except IOError as e:
+                print(f'não tem mais listas para rodar dados {e}')
+            pass
+
+            print('process bigrams and trigrams of column_text')
+
+            where = F.col(column_text).isNotNull()
+            df_pandas, model = self.most_relevant_ngram(
+                x=sparkDF, text_column=column_text, output_column_prefix='content', id_field=id_database, where=where
+            )            
+
+            print('convert to pandas again')
+            df = df_pandas.toPandas()
+            df_merge = pd.merge(df_pandas,df)
+
+        if whats_process == 'only_keywords_bigram':
+
+            print('collect words and find in column_text')
+            print(f'dict: {list_pattern}')
+            try:
+                for key in list_pattern:
+                    if type_find == 'fixo':
+                        df[key] =  df[column_text].apply(lambda x: self.udf_type_keywords(x,list_pattern[key],mode="dictionary"))
+                    else:
+                        df[key] =  df[column_text].apply(lambda x: self.pattern_matcher(x,list_pattern[key],mode="dictionary"))
+            except IOError as e:
+                print(f'não tem mais listas para rodar dados {e}')
+            pass
+
+            print('process bigrams and trigrams of column_text')
+
+            where = F.col(column_text).isNotNull()
+            df_pandas, model = self.most_relevant_ngram(
+                x=sparkDF, text_column=column_text, output_column_prefix='content', id_field=id_database, where=where
+            )            
+
+            print('convert to pandas again')
+            df = df_pandas.toPandas()
+            df_merge = pd.merge(df_pandas,df)
+
+        if whats_process == 'only_keywords':
+            print('collect words and find in column_text')
+            print(f'dict: {list_pattern}')
+            try:
+                for key in list_pattern:
+                    if type_find == 'fixo':
+                        df[key] =  df[column_text].apply(lambda x: self.udf_type_keywords(x,list_pattern[key],mode="dictionary"))
+                    else:
+                        df[key] =  df[column_text].apply(lambda x: self.pattern_matcher(x,list_pattern[key],mode="dictionary"))
+            except IOError as e:
+                print(f'não tem mais listas para rodar dados {e}')
+            pass                      
 
         print('save csf file')
         filename_renomead = f'{filename}_tratado'
         file_save = f'{filename_renomead}.csv'
-        df_merge.to_csv(f'/drive/My Drive/Colab Notebooks/{file_save}', sep=';',encoding='utf-8',index=False)
+        df_merge.to_csv(f'{path_save_datalake}/{file_save}', sep=';',encoding='utf-8',index=False)
         
         return df
 
