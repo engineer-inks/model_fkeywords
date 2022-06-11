@@ -54,15 +54,15 @@ class NlExtractorProcess(NLExtractor):
         path_read = '/content/'
         path_save = '/drive/My Drive/'
 
-        path_read_datalake = '/opt/dna/find-keywords/datalake/'
-        path_save_datalake = '/opt/dna/find-keywords/datalake/'
+        # path_read_datalake = '/opt/dna/find-keywords/datalake/'
+        # path_save_datalake = '/opt/dna/find-keywords/datalake/'
 
-        print(f'read file {path_read_datalake}{df_prefix}')
+        print(f'read file {path_read}{df_prefix}')
         if df_prefix == 'xlsx':
-            df = pd.read_excel(f"{path_read_datalake}/{filename}.{prefix}", engine='openpyxl')
+            df = pd.read_excel(f"{path_read}/{filename}.{prefix}", engine='openpyxl')
             print(f'eschema of dataframe is {df.info()}')
         if df_prefix == 'CSV':
-            df = pd.read_csv(f"{path_read_datalake}/{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
+            df = pd.read_csv(f"{path_read}/{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
             print(f'eschema of dataframe is {df.info()}')
 
         print('convert column_text column to string type')
@@ -217,7 +217,7 @@ class NlExtractorProcess(NLExtractor):
         print('save csf file')
         filename_renomead = f'{filename}_tratado'
         file_save = f'{filename_renomead}.csv'
-        df_merge.to_csv(f'{path_save_datalake}/{file_save}', sep=';',encoding='utf-8',index=False)
+        df_merge.to_csv(f'{path_save}/{file_save}', sep=';',encoding='utf-8',index=False)
         print('Finishing Process')
         
         return df_merge
