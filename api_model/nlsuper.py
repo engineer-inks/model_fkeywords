@@ -51,11 +51,11 @@ class NlExtractorProcess(NLExtractor):
         """
         
         df_prefix = f'{prefix}'
-        path_read = '/content/'
-        path_save = '/content/drive/My Drive/'
+        #path_read = '/content/'
+        #path_save = '/content/drive/My Drive/'
 
-        # path_read_datalake = '/opt/dna/find-keywords/datalake/'
-        # path_save_datalake = '/opt/dna/find-keywords/datalake/'
+        path_read = '/opt/dna/find-keywords/datalake/'
+        path_save = '/opt/dna/find-keywords/datalake/'
 
         print(f'read file {path_read}{df_prefix}')
         if df_prefix == 'xlsx':
@@ -70,6 +70,8 @@ class NlExtractorProcess(NLExtractor):
 
         print('put column_text in lower case')
         df[column_text] = df[column_text].str.lower()
+
+        df = df.head(20000)
       
         if whats_process == 'complete':
             print(f'Start Complete Process')
@@ -132,8 +134,10 @@ class NlExtractorProcess(NLExtractor):
 
             print(f'dataframe old {list(df_all.columns)}')
             print(f'dataframe new {list(df.columns)}')
+
+            df_all[id_database] = df_all[id_database].astype(str)          
             
-            df_merge = df_all.join(df, on=id_database, how='left',lsuffix='_left')
+            df_merge = df_all.merge(df, on=id_database, how='left')
             print(f'joined dataframes {list(df_merge.columns)}')
 
         if whats_process == 'partial':
@@ -195,7 +199,9 @@ class NlExtractorProcess(NLExtractor):
             print(f'dataframe old {list(df_all.columns)}')
             print(f'dataframe new {list(df.columns)}')
             
-            df_merge = df_all.join(df, on=id_database, how='left',lsuffix='_left')
+            df_all[id_database] = df_all[id_database].astype(str)          
+            
+            df_merge = df_all.merge(df, on=id_database, how='left')
             print(f'joined dataframes {list(df_merge.columns)}')
 
         if whats_process == 'only_keywords':
