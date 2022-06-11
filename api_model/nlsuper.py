@@ -52,7 +52,7 @@ class NlExtractorProcess(NLExtractor):
         
         df_prefix = f'{prefix}'
         path_read = '/content/'
-        path_save = '/drive/My Drive/'
+        path_save = '/content/drive/My Drive/'
 
         # path_read_datalake = '/opt/dna/find-keywords/datalake/'
         # path_save_datalake = '/opt/dna/find-keywords/datalake/'
