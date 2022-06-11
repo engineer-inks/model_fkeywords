@@ -5,7 +5,7 @@ services:
       context: .
       args:
         config_path: config/$ENV
-        base_image: bitnami/jupyter-base-notebook
+        base_image: jupyter/pyspark-notebook:spark-3.1.2
     container_name: find-keywords-container
     user: root
     image: dna/$SERVICE

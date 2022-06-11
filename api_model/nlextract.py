@@ -91,6 +91,21 @@ class NLExtractor:
             logging.info('Error clean_text')
 
 
+    @classmethod
+    def clean_text(self,text):
+        try:
+            text = self.cleaner(text)
+            logging.info(f'Sucess separed pontuation {text}')   
+            out = []
+            for x in self.udf_split_text(text):
+                if len(x) > 2:
+                    out.append(x)
+            logging.info('Sucess clean_text')                    
+            return ' '.join(' '.join(out).strip().split())
+        except IOError:
+            logging.info('Error clean_text')            
+
+
     def tokenizer(self, text):
         text = re.split(r'\s+',text)
         return text
@@ -322,8 +337,8 @@ class NLExtractor:
     def remove_specific_numbers(self, lista, numbers):
         return [token for token in lista if token not in numbers]
 
-
-    @classmethod
+ 
+    @F.udf(T.StringType())
     def most_important_ngram(vocabulary, v):
         """
         Spark UDF that extracts the most relevant words, 2-grams and 3-grams with TF-IDF
@@ -341,7 +356,7 @@ class NLExtractor:
             return max(kv, key=kv.get, default='')
         return ''
 
-
+    @classmethod
     def most_relevant_ngram(self,
         x: DataFrame,
         text_column: str,
@@ -352,6 +367,7 @@ class NLExtractor:
         features: int = 4096,
         min_df: float = 3.0,
         keep_intermediate: bool = False,
+        texts_to_filter: str = (),
     ):
         """
         Computes and creates features to select the most relevant word, 2-grams and 3-grams.
@@ -378,7 +394,6 @@ class NLExtractor:
         :return: DataFrame containing most relevant word, 2-grams and 3-grams columns
         :rtype: DataFrame
         """
-
         o = x
 
         if isinstance(stop_words, str):
@@ -386,6 +401,9 @@ class NLExtractor:
 
         if where is not None:
             x = o.filter(where)
+
+        if texts_to_filter:
+            x = x.withColumn(text_column, F.replace(text_column, texts_to_filter, F.replacement))            
 
         tokenizer = Tokenizer(inputCol=text_column, outputCol=f'{text_column}_aux_tokenized')
 
@@ -429,16 +447,32 @@ class NLExtractor:
         model = pipeline.fit(x)
         x = model.transform(x)
 
+        word_vocab = model.stages[4].vocabulary
+        bigram_vocab = model.stages[5].vocabulary
+        trigram_vocab = model.stages[6].vocabulary        
+
         word_field = f'{output_column_prefix}_word'
         bi_gram_field = f'{output_column_prefix}_bigram'
         tri_gram_field = f'{output_column_prefix}_trigram'
 
-        for field, col, vocabulary in (
-            (word_field, words_idf.getOutputCol(), model.stages[4].vocabulary),
-            (bi_gram_field, bigram_idf.getOutputCol(), model.stages[5].vocabulary),
-            (tri_gram_field, trigram_idf.getOutputCol(), model.stages[6].vocabulary),
-        ):
-            x = x.withColumn(field, self.most_important_ngram(F.array([F.lit(x) for x in vocabulary]), col))
+        def get_argmax_word(vocab, col):
+            @F.udf()
+            def get_argmax_word_(col):
+                y = col.toArray()
+                if texts_to_filter:
+                    y = F.array([-1 if F.contains(vocab[idx], F.replacement) else elem for idx, elem in enumerate(y)])
+                if all(elem <= min_df for elem in y):
+                    return None
+                return vocab[y.argmax().item()]
+            return get_argmax_word_(col)
+
+        x = (x.withColumn(word_field, get_argmax_word(vocab=word_vocab, col=words_idf.getOutputCol()))
+                .withColumn(bi_gram_field, get_argmax_word(vocab=bigram_vocab, col=bigram_idf.getOutputCol()))
+                .withColumn(tri_gram_field, get_argmax_word(vocab=trigram_vocab, col=trigram_idf.getOutputCol()))
+                .drop(bigram.getOutputCol(), trigram.getOutputCol(), tokenizer.getOutputCol(),
+                    words_remover.getOutputCol(), bigram_cv.getOutputCol(),
+                    trigram_cv.getOutputCol(), words_cv.getOutputCol(), words_idf.getOutputCol(),
+                    bigram_idf.getOutputCol(), trigram_idf.getOutputCol()))
 
         if not keep_intermediate:
             x = x.drop(
@@ -453,9 +487,11 @@ class NLExtractor:
                 bigram_idf.getOutputCol(),
                 trigram_idf.getOutputCol(),
             )
-
+        
+        x.persist(StorageLevel.DISK_ONLY)
         x.count()
 
+        o.persist(StorageLevel.DISK_ONLY)
         o.count()
 
         if where is not None:
