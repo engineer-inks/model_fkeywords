@@ -15,67 +15,56 @@ from nltk.stem import WordNetLemmatizer
 from nltk.util import ngrams
 from nltk.corpus import stopwords
 
+from pyspark.ml.feature import Tokenizer, StopWordsRemover, NGram, CountVectorizer, IDF
+from pyspark.ml.pipeline import Pipeline
+from pyspark.ml.linalg import SparseVector
+from pyspark.sql import DataFrame, Column, functions as F, types as T
+from pyspark import StorageLevel
+
 
 NLTK_STOPWORDS = nltk.corpus.stopwords.words('portuguese')
 
-class NLExtractor:
-
-    _instance = None
-    _spacy_load = None    
+class NLExtractor: 
 
     def __init__(self):
       self.data_type =[]
 
-    def __new__(cls):
 
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            try:
-                data.find('stemmers/rslp')
-            except LookupError:
-                download('rslp')
-            try:
-                data.find('stopwords')
-            except LookupError:
-                download('stopwords')
-            
-            cls._instance.spacy_nlp = cls._instance.spacy_nlp = spacy.load("pt_core_news_sm")       
-
-        return cls._instance
-    
-
-    def cleaner(self, string, custom_cleaner=''):
+    @classmethod
+    def cleaner(self, text):
         
         #TO-DO: Keep Acronyms
 
-        string = string.lower()
-        string = re.sub(r",", " , ", string)
-        string = re.sub(r"\'", " \' ", string)
-        string = re.sub(r"!", " ! ", string)
-        string = re.sub(r"\(", " ( ", string)
-        string = re.sub(r"\)", " ) ", string)
-        string = re.sub(r"\?", " ? ", string)
-        string = re.sub(r"\:", " : ", string)
-        string = re.sub(r"\.", " . ", string)
-        string = re.sub(r"\$", "  ", string)
-        string = re.sub(r"\-", "  ", string)
-        string = re.sub(r"\s{2,}", " ", string)
+        text = text.lower()
+        text = re.sub(r",", " , ", text)
+        text = re.sub(r"\'", " \' ", text)
+        text = re.sub(r"!", " ! ", text)
+        text = re.sub(r"\(", " ( ", text)
+        text = re.sub(r"\)", " ) ", text)
+        text = re.sub(r"\?", " ? ", text)
+        text = re.sub(r"\:", " : ", text)
+        text = re.sub(r"\.", " . ", text)
+        text = re.sub(r"\$", "  ", text)
+        text = re.sub(r"\-", "  ", text)
+        text = re.sub(r"\s{2,}", " ", text)
 
-        string = string.strip()
+        text = text.strip()
 
-        return string
+        return text
 
 
-    def remove_special_characters(self,s):
+    @classmethod
+    def remove_special_characters(self,text):
         try:
             return ''.join(
-                c for c in unicodedata.normalize('NFD', s)
+                c for c in unicodedata.normalize('NFD', text)
                 if unicodedata.category(c) not in ['Mn', 'N'] and c.isalpha()
             ).lower()
         except IOError as e:
             print('Error tokenize', e)
 
 
+    @classmethod
     def udf_split_text(self, text):
     
         if type(text) == str:
@@ -86,7 +75,8 @@ class NLExtractor:
             yield x
 
 
-    def udf_clean_text(self, text):
+    @classmethod
+    def udf_clean_text(self,text):
         try:
             text = self.cleaner(text)
             logging.info(f'Sucess separed pontuation {text}')   
@@ -101,34 +91,34 @@ class NLExtractor:
             logging.info('Error clean_text')
 
 
-    def tokenizer(self, string):
-        string = re.split(r'\s+',string)
-        return string
+    def tokenizer(self, text):
+        text = re.split(r'\s+',text)
+        return text
 
 
-    def filter_stop_words(self, lst, additional_stop_words = []):
+    def filter_stop_words(self, lista, additional_stop_words = []):
 
         stop_words = NLTK_STOPWORDS
         stop_words.pop(stop_words.index('não'))
         if len(additional_stop_words) > 0:
             stop_words += additional_stop_words
-        return [token for token in lst if token not in stop_words]
+        return [token for token in lista if token not in stop_words]
 
 
-    def stemmer(self, lst, version='nltk'):
+    def stemmer(self, lista, version='nltk'):
 
         pt_stem = stem.RSLPStemmer()
         
-        return [pt_stem.stem(t) for t in lst]
+        return [pt_stem.stem(t) for t in lista]
 
 
-    def pos_tagger(self, lst, POS_TAGGER = './data/POS_tagger_bigram.pkl'):
+    def pos_tagger(self, lista, POS_TAGGER = './data/POS_tagger_bigram.pkl'):
         #TO-DO: Bug on Pos-tagger load
         pos_tagger = pickle.load(open(POS_TAGGER, 'rb'))
-        return pos_tagger.tag(lst)
+        return pos_tagger.tag(lista)
 
 
-    def lemmatizer(self, pos_lst, parser='spacy'):
+    def lemmatizer(self, lista, parser='spacy'):
         nlp = NLExtractor._instance.spacy_nlp
         if parser == 'spacy':
             
@@ -141,7 +131,7 @@ class NLExtractor:
                 return []
         try:
             out = []
-            for x in nlp(str(pos_lst)):
+            for x in nlp(str(lista)):
                 if ( not x.is_punct and
                     not x.is_space and
                     not x.is_stop and
@@ -176,6 +166,7 @@ class NLExtractor:
         return dict(FreqDist(lst))
 
 
+    @classmethod
     def pattern_matcher(self, text, pattern, mode="dictionary", anonymizer = False, custom_anonymizer = '<UNK>'):
 
         output = []
@@ -285,6 +276,7 @@ class NLExtractor:
             _spacy_load = None
 
 
+    @classmethod
     def udf_type_keywords(self, text, pattern,  mode="dictionary"):
         """
         Search pattern in text and return what was found separated by pipe
@@ -304,6 +296,7 @@ class NLExtractor:
         return None
 
 
+    @classmethod
     def udf_extract_digits(self, text, pattern):
         document_terms = []
         
@@ -316,6 +309,7 @@ class NLExtractor:
         return ''.join(','.join(document_terms).strip()).split()
 
 
+    @classmethod
     def remove_duplicates(self, lista):
         l = []
         for i in lista:
@@ -325,9 +319,151 @@ class NLExtractor:
         return l
 
 
-    def remove_specific_numbers(self, lst, numbers):
-        return [token for token in lst if token not in numbers]    
+    def remove_specific_numbers(self, lista, numbers):
+        return [token for token in lista if token not in numbers]
 
 
+    @classmethod
+    def most_important_ngram(vocabulary, v):
+        """
+        Spark UDF that extracts the most relevant words, 2-grams and 3-grams with TF-IDF
+
+        :param Vocabulary: Vocabulary of words by CountVectorizerModel
+        :type vocabulary: str
+        :param v: SparseVector with TF-IDF relevance values
+        :type v: SparceVector
+        :return: Dictionary with most relevant word, 2-gram anda 3-gram
+        :rtype: dict
+        """
+
+        if isinstance(v, SparseVector):
+            kv = {vocabulary[i]: cnt for (i, cnt) in zip(v.indices.tolist(), v.values.tolist())}
+            return max(kv, key=kv.get, default='')
+        return ''
+
+
+    def most_relevant_ngram(self,
+        x: DataFrame,
+        text_column: str,
+        output_column_prefix: str,
+        id_field: str = 'id',
+        where: Column = None,
+        stop_words='portuguese',
+        features: int = 4096,
+        min_df: float = 3.0,
+        keep_intermediate: bool = False,
+    ):
+        """
+        Computes and creates features to select the most relevant word, 2-grams and 3-grams.
+
+        :param x: DataFrame Input containing pre-processed text
+        :type x: DataFrame
+        :param text_column: Name of the column containing the evaluating documents
+        :type text_column: str
+        :param output_column_prefix: Prefix used to create the output column.
+        :type output_column_prefix: str
+        :param id_field: Name of the column of the unique id to join the result on the original data frame in
+                        case filter_expr was not null, defaults to 'id'
+        :type id_field: str, optional
+        :param where: Expression used to filter the dataframe if you want to extract the most relevant ngrams for a specific context, defaults to None
+        :type where: column, optional
+        :param stop_words: List of words fed to `StopWordsRemover` transformer, defaults to 'portuguese'
+        :type stop_words: str, optional
+        :param features: Max size of the vocabulary, defaults to 4096
+        :type features: int, optional
+        :param min_df: Specifies the minimum number of different documents a term must appear in to be included in the vocabulary
+        :type min_df: float, optional
+        :param keep_intermediate: Retain intermediate representation
+        :type keep_intermediate: bool, optional
+        :return: DataFrame containing most relevant word, 2-grams and 3-grams columns
+        :rtype: DataFrame
+        """
+
+        o = x
+
+        if isinstance(stop_words, str):
+            stop_words = StopWordsRemover.loadDefaultStopWords('portuguese')
+
+        if where is not None:
+            x = o.filter(where)
+
+        tokenizer = Tokenizer(inputCol=text_column, outputCol=f'{text_column}_aux_tokenized')
+
+        words_remover = StopWordsRemover(
+            inputCol=tokenizer.getOutputCol(), outputCol=f'{text_column}_aux_filtered', stopWords=stop_words
+        )
+
+        bigram = NGram(n=2, inputCol=words_remover.getOutputCol(), outputCol=f'{text_column}_aux_bigrams')
+        trigram = NGram(n=3, inputCol=words_remover.getOutputCol(), outputCol=f'{text_column}_aux_trigrams')
+        words_cv = CountVectorizer(
+            inputCol=words_remover.getOutputCol(), outputCol=f'{text_column}_aux_words_cv', vocabSize=features, minDF=min_df
+        )
+
+        bigram_cv = CountVectorizer(
+            inputCol=bigram.getOutputCol(), outputCol=f'{text_column}_aux_bigrams_cv', vocabSize=features, minDF=min_df
+        )
+
+        trigram_cv = CountVectorizer(
+            inputCol=trigram.getOutputCol(), outputCol=f'{text_column}_aux_trigrams_cv', vocabSize=features, minDF=min_df
+        )
+
+        words_idf = IDF(inputCol=words_cv.getOutputCol(), outputCol=f'{output_column_prefix}_words_idf')
+        bigram_idf = IDF(inputCol=bigram_cv.getOutputCol(), outputCol=f'{output_column_prefix}_bigrams_idf')
+        trigram_idf = IDF(inputCol=trigram_cv.getOutputCol(), outputCol=f'{output_column_prefix}_trigrams_idf')
+
+        pipeline = Pipeline(
+            stages=[
+                tokenizer,
+                words_remover,
+                bigram,
+                trigram,
+                words_cv,
+                bigram_cv,
+                trigram_cv,
+                words_idf,
+                bigram_idf,
+                trigram_idf,
+            ]
+        )
+
+        model = pipeline.fit(x)
+        x = model.transform(x)
+
+        word_field = f'{output_column_prefix}_word'
+        bi_gram_field = f'{output_column_prefix}_bigram'
+        tri_gram_field = f'{output_column_prefix}_trigram'
+
+        for field, col, vocabulary in (
+            (word_field, words_idf.getOutputCol(), model.stages[4].vocabulary),
+            (bi_gram_field, bigram_idf.getOutputCol(), model.stages[5].vocabulary),
+            (tri_gram_field, trigram_idf.getOutputCol(), model.stages[6].vocabulary),
+        ):
+            x = x.withColumn(field, self.most_important_ngram(F.array([F.lit(x) for x in vocabulary]), col))
+
+        if not keep_intermediate:
+            x = x.drop(
+                bigram.getOutputCol(),
+                trigram.getOutputCol(),
+                tokenizer.getOutputCol(),
+                words_remover.getOutputCol(),
+                bigram_cv.getOutputCol(),
+                trigram_cv.getOutputCol(),
+                words_cv.getOutputCol(),
+                words_idf.getOutputCol(),
+                bigram_idf.getOutputCol(),
+                trigram_idf.getOutputCol(),
+            )
+
+        x.count()
+
+        o.count()
+
+        if where is not None:
+            id_r = f'filtered_{id_field}'
+            x = x.select(id_field, bi_gram_field, tri_gram_field, word_field).withColumnRenamed(id_field, id_r)
+
+            x = o.join(x, o[id_field] == x[id_r], how='left').drop(id_r)
+
+        return x, model
     #TO-DO: Datetime Converter
 

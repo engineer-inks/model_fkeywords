@@ -15,3 +15,5 @@ RUN python -m spacy download pt_core_news_sm
 RUN pip install nltk
 RUN python -c "import nltk; nltk.download('stopwords')"
 RUN python -c "import nltk; nltk.download('punkt')"
+
+ADD $config_path/spark-defaults.conf $SPARK_HOME/conf/

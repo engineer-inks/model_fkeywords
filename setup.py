@@ -10,7 +10,7 @@ DEPENDENCIES = open(os.path.join(PROJECT_DIR, 'requirements.txt')).readlines()
 
 setup(
     name='model_fkeywords',
-    version='0.1.0',
+    version='0.1.1',
     description='A Natural Language Processing Library',
     author='Eneas Rodrigues',
     license='MIT',
