@@ -155,6 +155,15 @@ class NlExtractorProcess(NLExtractor):
         if whats_process == 'partial':
             print(f'Start Partial Process')
 
+            if activate_stopwords == 'sim':
+                print('convert text in tokens')
+                df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
+                print(f'remove stop words from text \n {df[column_text].head(5)}')
+                df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
+                print(f'convert tokens in string \n {df[column_text].head(5)}')
+                df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
+                print(f'text without stop words \n {df[column_text].head(5)}')            
+
             print('collect words and find in column_text')
             print(f'dict: {list_pattern}')
             try:
@@ -218,6 +227,15 @@ class NlExtractorProcess(NLExtractor):
 
         if whats_process == 'only_keywords':
             print(f'Start Only KeyWords Find Process')
+
+            if activate_stopwords == 'sim':
+                print('convert text in tokens')
+                df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
+                print(f'remove stop words from text \n {df[column_text].head(5)}')
+                df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
+                print(f'convert tokens in string \n {df[column_text].head(5)}')
+                df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
+                print(f'text without stop words \n {df[column_text].head(5)}')            
 
             print('collect words and find in column_text')
             print(f'dict: {list_pattern}')
