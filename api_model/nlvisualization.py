@@ -40,8 +40,8 @@ class NlVisualization:
                 column_text: str,
                 whats_process: str):
         
-        #path_read = '/content/drive/My Drive/'
-        path_read = '/opt/dna/find-keywords/datalake/'
+        path_read = '/content/drive/My Drive/'
+        #path_read = '/opt/dna/find-keywords/datalake/'
 
         df = pd.read_csv(f"{path_read}/{filename}_tratado.csv", sep=';', encoding='utf-8')
 
@@ -94,8 +94,8 @@ class NlVisualization:
                 column_filter: str,              
                 column_text: str):
 
-        #path_read = '/content/drive/My Drive/'
-        path_read = '/opt/dna/find-keywords/datalake/'
+        path_read = '/content/drive/My Drive/'
+        #path_read = '/opt/dna/find-keywords/datalake/'
 
         df = pd.read_csv(f"{path_read}/{filename}_tratado.csv", sep=';', encoding='utf-8')
 

@@ -18,7 +18,6 @@ class NlExtractorProcess(NLExtractor):
                 type_find: str
                 ):
             
-        
         self.filename = filename
         self.prefix = prefix
         self.prefix_sep = prefix_sep
