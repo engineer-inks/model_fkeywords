@@ -66,7 +66,7 @@ class NlExtractorProcess(NLExtractor):
         if df_prefix == 'xlsx':
             df = pd.read_excel(f"{path_read}/{filename}.{prefix}", engine='openpyxl')
             print(f'eschema of dataframe is {df.info()}')
-        if df_prefix == 'CSV':
+        if df_prefix == 'csv':
             df = pd.read_csv(f"{path_read}/{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
             print(f'eschema of dataframe is {df.info()}')
 
@@ -80,8 +80,11 @@ class NlExtractorProcess(NLExtractor):
             print(f'Start Complete Process')
 
             if activate_stopwords == 'sim':
+                print('convert text in tokens')
+                df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
                 print('remove stop words from text')
                 df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
+                print('convert tokens in string')
                 df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
 
             print(f'remove special characters and pontuation of column_text')

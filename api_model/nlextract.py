@@ -14,6 +14,7 @@ from nltk import download,data
 from nltk.stem import WordNetLemmatizer
 from nltk.util import ngrams
 from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 from pyspark.ml.feature import Tokenizer, StopWordsRemover, NGram, CountVectorizer, IDF
 from pyspark.ml.pipeline import Pipeline
@@ -113,13 +114,12 @@ class NLExtractor:
 
 
     @classmethod
-    def filter_stop_words(self, lista, additional_stop_words = []):
-        lista = self.tokenizer(lista)
+    def filter_stop_words(self, text_tokens, additional_stop_words = []):
         stop_words = NLTK_STOPWORDS
-        #stop_words.pop(stop_words.index('não'))
         if len(additional_stop_words) > 0:
-            stop_words += additional_stop_words
-        return [token for token in lista if token not in stop_words]
+            for i in additional_stop_words:
+                stop_words.append(i)
+        return [word for word in text_tokens if not word in stop_words]
 
     
     @classmethod
