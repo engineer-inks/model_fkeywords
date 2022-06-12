@@ -15,7 +15,9 @@ class NlExtractorProcess(NLExtractor):
                 whats_process: str,
                 list_pattern: dict,
                 id_database: str,
-                type_find: str
+                type_find: str,
+                additional_stop_words: list,
+                activate_stopwords: str
                 ):
             
         self.filename = filename
@@ -26,6 +28,8 @@ class NlExtractorProcess(NLExtractor):
         self.list_pattern = list_pattern
         self.id_database = id_database
         self.type_find = type_find
+        self.additional_stop_words = additional_stop_words
+        self.activate_stopwords = activate_stopwords
 
         super().__init__()
     
@@ -38,7 +42,9 @@ class NlExtractorProcess(NLExtractor):
         whats_process,
         list_pattern,
         id_database,
-        type_find):
+        type_find,
+        additional_stop_words,
+        activate_stopwords):
         
         """
         whats_process = 'complete'
@@ -68,10 +74,15 @@ class NlExtractorProcess(NLExtractor):
         df[column_text] = df[column_text].astype(str)
 
         print('put column_text in lower case')
-        df[column_text] = df[column_text].str.lower() 
+        df[column_text] = df[column_text].str.lower()
       
         if whats_process == 'complete':
             print(f'Start Complete Process')
+
+            if activate_stopwords == 'sim':
+                print('remove stop words from text')
+                df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
+                df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
 
             print(f'remove special characters and pontuation of column_text')
             df[column_text] =  df[column_text].apply(lambda x: self.udf_clean_text(x))

@@ -103,34 +103,32 @@ class NLExtractor:
             logging.info('Sucess clean_text')                    
             return ' '.join(' '.join(out).strip().split())
         except IOError:
-            logging.info('Error clean_text')            
+            logging.info('Error clean_text')
 
 
+    @classmethod
     def tokenizer(self, text):
         text = re.split(r'\s+',text)
         return text
 
 
+    @classmethod
     def filter_stop_words(self, lista, additional_stop_words = []):
-
+        lista = self.tokenizer(lista)
         stop_words = NLTK_STOPWORDS
-        stop_words.pop(stop_words.index('não'))
+        #stop_words.pop(stop_words.index('não'))
         if len(additional_stop_words) > 0:
             stop_words += additional_stop_words
         return [token for token in lista if token not in stop_words]
 
-
-    def stemmer(self, lista, version='nltk'):
-
-        pt_stem = stem.RSLPStemmer()
-        
-        return [pt_stem.stem(t) for t in lista]
-
-
-    def pos_tagger(self, lista, POS_TAGGER = './data/POS_tagger_bigram.pkl'):
-        #TO-DO: Bug on Pos-tagger load
-        pos_tagger = pickle.load(open(POS_TAGGER, 'rb'))
-        return pos_tagger.tag(lista)
+    
+    @classmethod
+    def convert_list_string(self,lista):
+        out = []
+        for i in lista:
+            if len(i) > 2:
+                out.append(i)
+        return ' '.join(' '.join(out).strip().split())
 
 
     def lemmatizer(self, lista, parser='spacy'):
@@ -167,18 +165,6 @@ class NLExtractor:
     def n_grams(self, lst, n_gram_size, filter_stop_words=False):
         n_grams_list = list(ngrams(lst,n_gram_size))
         return n_grams_list
-        
-
-    def histogram(self, lst, parser='spacy'):
-        check_type = set([isinstance(el,list) for el in lst])
-
-        if len(check_type) > 1:
-            print('Please Double Check your Token List')
-            return {}
-        elif True in check_type:
-            lst = sum(lst,[])
-            
-        return dict(FreqDist(lst))
 
 
     @classmethod
