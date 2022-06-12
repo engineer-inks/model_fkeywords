@@ -69,7 +69,7 @@ class NlExtractorProcess(NLExtractor):
         df[column_text] = df[column_text].astype(str)
 
         print('put column_text in lower case')
-        df[column_text] = df[column_text].str.lower()
+        df[column_text] = df[column_text].str.lower() 
       
         if whats_process == 'complete':
             print(f'Start Complete Process')
@@ -135,8 +135,8 @@ class NlExtractorProcess(NLExtractor):
 
             df_all[id_database] = df_all[id_database].astype(str)          
             
-            df_merge = df_all.merge(df, on=id_database, how='left')
-            print(f'joined dataframes {list(df_merge.columns)}')
+            df_merge = pd.concat([df_all, df], axis=1)
+            print(f'joined dataframes {list(df_merge.columns)}  \n and numbers of rows is {df_merge["numbers_words"].count()}')
 
         if whats_process == 'partial':
             print(f'Start Partial Process')
@@ -199,8 +199,8 @@ class NlExtractorProcess(NLExtractor):
             
             df_all[id_database] = df_all[id_database].astype(str)          
             
-            df_merge = df_all.merge(df, on=id_database, how='left')
-            print(f'joined dataframes {list(df_merge.columns)}')
+            df_merge = pd.concat([df_all, df], axis=1)
+            print(f'joined dataframes {list(df_merge.columns)}  \n and numbers of rows is {df_merge["numbers_words"].count()}')
 
         if whats_process == 'only_keywords':
             print(f'Start Only KeyWords Find Process')
