@@ -254,6 +254,7 @@ class NLExtractor:
         return output
 
 
+    @classmethod
     def detect_pattern(self, match, key, ner_type, start_index, end_index):
         # TODO: add score 
         return {
