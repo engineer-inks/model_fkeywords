@@ -82,10 +82,11 @@ class NlExtractorProcess(NLExtractor):
             if activate_stopwords == 'sim':
                 print('convert text in tokens')
                 df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
-                print('remove stop words from text')
+                print(f'remove stop words from text \n {df[column_text].head(5)}')
                 df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
-                print('convert tokens in string')
+                print(f'convert tokens in string \n {df[column_text].head(5)}')
                 df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
+                print(f'text without stop words \n {df[column_text].head(5)}')
 
             print(f'remove special characters and pontuation of column_text')
             df[column_text] =  df[column_text].apply(lambda x: self.udf_clean_text(x))
