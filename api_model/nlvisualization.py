@@ -79,6 +79,7 @@ class NlVisualization:
         )
 
         wordcloud_bigrama = wc.generate_from_frequencies(freq_dist)
+        plt.figure(2, figsize=(19, 19 / 1.6180))
         plt.imshow(wordcloud_bigrama, interpolation='bilinear')
         plt.tight_layout(pad=0)
         plt.axis('off')
