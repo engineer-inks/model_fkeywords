@@ -202,10 +202,12 @@ class NLExtractor:
                         pattern += r"{e<=1}"
 
                     for match in regex.finditer(pattern, text):
-                        output.append(self.detect_pattern(match.group().strip(), key, key, match.start(), match.end()))
+                        output.append(match.group().strip())
                         break
         else:
             print('Invalid Type.')
+        
+        output = self.convert_list_string(output)
         
         return output
 

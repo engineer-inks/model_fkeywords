@@ -5,6 +5,12 @@ from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame, Column, functions as F, types as T
 
 
+PATH_READ = '/content/'
+PATH_SAVE = '/content/drive/My Drive/'
+
+#PATH_READ = '/opt/dna/find-keywords/datalake/'
+#PATH_SAVE = '/opt/dna/find-keywords/datalake/'
+
 class NlExtractorProcess(NLExtractor):
 
     def __init__(self, 
@@ -56,18 +62,13 @@ class NlExtractorProcess(NLExtractor):
         """
         
         df_prefix = f'{prefix}'
-        path_read = '/content/'
-        path_save = '/content/drive/My Drive/'
 
-        #path_read = '/opt/dna/find-keywords/datalake/'
-        #path_save = '/opt/dna/find-keywords/datalake/'
-
-        print(f'read file {path_read}{df_prefix}')
+        print(f'read file {PATH_READ}{df_prefix}')
         if df_prefix == 'xlsx':
-            df = pd.read_excel(f"{path_read}/{filename}.{prefix}", engine='openpyxl')
+            df = pd.read_excel(f"{PATH_READ}/{filename}.{prefix}", engine='openpyxl')
             print(f'eschema of dataframe is {df.info()}')
         if df_prefix == 'csv':
-            df = pd.read_csv(f"{path_read}/{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
+            df = pd.read_csv(f"{PATH_READ}/{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
             print(f'eschema of dataframe is {df.info()}')
 
         print('convert column_text column to string type')
@@ -253,7 +254,7 @@ class NlExtractorProcess(NLExtractor):
         print('save csf file')
         filename_renomead = f'{filename}_tratado'
         file_save = f'{filename_renomead}.csv'
-        df_merge.to_csv(f'{path_save}/{file_save}', sep=';',encoding='utf-8',index=False)
+        df_merge.to_csv(f'{PATH_SAVE}/{file_save}', sep=';',encoding='utf-8',index=False)
         print('Finishing Process')
         
         return df_merge

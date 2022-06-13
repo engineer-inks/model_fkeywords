@@ -20,8 +20,12 @@ nltk.download('punkt')
 
 NLTK_STOPWORDS = nltk.corpus.stopwords.words('portuguese')
 
+PATH_READ = '/content/drive/My Drive/'
+#PATH_READ = '/opt/dna/find-keywords/datalake'
 
 class NlVisualization:
+
+
     def __init__(self, 
                 filename: str,
                 column_filter: str,
@@ -39,11 +43,9 @@ class NlVisualization:
                 column_filter: str,              
                 column_text: str,
                 whats_process: str):
-        
-        path_read = '/content/drive/My Drive/'
-        #path_read = '/opt/dna/find-keywords/datalake/'
+    
 
-        df = pd.read_csv(f"{path_read}/{filename}_tratado.csv", sep=';', encoding='utf-8')
+        df = pd.read_csv(f"{PATH_READ}/{filename}_tratado.csv", sep=';', encoding='utf-8')
 
         if column_filter == '':
             pass
@@ -51,6 +53,7 @@ class NlVisualization:
             df = df[df[column_filter].notnull()]
             df = df[df[column_filter].notna()]
             df = df[df[column_filter] != '']
+            df = df[df[column_filter] !='[]']
 
         list_str = df[column_text].values.tolist()
         sent = ','.join([str(i) for i in list_str])
@@ -94,14 +97,12 @@ class NlVisualization:
                 filename: str,
                 column_filter: str,              
                 column_text: str):
-
-        path_read = '/content/drive/My Drive/'
-        #path_read = '/opt/dna/find-keywords/datalake/'
         
-        df = pd.read_csv(f"{path_read}/{filename}_tratado.csv", sep=';', encoding='utf-8')
+        df = pd.read_csv(f"{PATH_READ}/{filename}_tratado.csv", sep=';', encoding='utf-8')
 
         if column_filter == '':
             pass
+            df = df[~df[column_text].isnull()]
         else:                
             df = df[df[column_filter].notnull()]
             df = df[df[column_filter].notna()]
