@@ -1,15 +1,9 @@
 from api_model.nlextract import NLExtractor
 import pandas as pd
-from pyspark.sql.types import StructType,StructField, StringType, IntegerType
-from pyspark.sql import SparkSession
-from pyspark.sql import DataFrame, Column, functions as F, types as T
+from .utils.functions import TransforDatas
+from pyspark.sql import SparkSession, functions as F, types as T
+from .utils.logger import logger
 
-
-PATH_READ = '/content/'
-PATH_SAVE = '/content/drive/My Drive/'
-
-#PATH_READ = '/opt/dna/find-keywords/datalake/'
-#PATH_SAVE = '/opt/dna/find-keywords/datalake/'
 
 class NlExtractorProcess(NLExtractor):
 
@@ -23,7 +17,10 @@ class NlExtractorProcess(NLExtractor):
                 id_database: str,
                 type_find: str,
                 additional_stop_words: list,
-                activate_stopwords: str
+                activate_stopwords: str,
+                interlocutor: dict,
+                response_time: str,
+                format_data: str
                 ):
             
         self.filename = filename
@@ -36,6 +33,9 @@ class NlExtractorProcess(NLExtractor):
         self.type_find = type_find
         self.additional_stop_words = additional_stop_words
         self.activate_stopwords = activate_stopwords
+        self.interlocutor = interlocutor
+        self.response_time = response_time
+        self.format_data = format_data
 
         super().__init__()
     
@@ -50,7 +50,10 @@ class NlExtractorProcess(NLExtractor):
         id_database,
         type_find,
         additional_stop_words,
-        activate_stopwords):
+        activate_stopwords,
+        interlocutor,
+        response_time,
+        format_data):
         
         """
         whats_process = 'complete'
@@ -60,219 +63,131 @@ class NlExtractorProcess(NLExtractor):
         whats_process = 'only_keywords'
             return: findkeywords       
         """
-        
-        df_prefix = f'{prefix}'
 
-        print(f'read file {PATH_READ}{df_prefix}')
-        if df_prefix == 'xlsx':
-            df = pd.read_excel(f"{PATH_READ}/{filename}.{prefix}", engine='openpyxl')
-            print(f'eschema of dataframe is {df.info()}')
-        if df_prefix == 'csv':
-            df = pd.read_csv(f"{PATH_READ}/{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
-            print(f'eschema of dataframe is {df.info()}')
+        logger.info('Load CSV')
+        df = TransforDatas.load_file(prefix, filename, prefix_sep, meth=None)
 
-        print('convert column_text column to string type')
-        df[column_text] = df[column_text].astype(str)
-
-        print('put column_text in lower case')
-        df[column_text] = df[column_text].str.lower()
+        logger.info('Normalize Datas Values')
+        df = TransforDatas.normalize_data(df=df, column_text=column_text, response_time=response_time, format_data=format_data, id_database=id_database)
       
         if whats_process == 'complete':
-            print(f'Start Complete Process')
+            logger.info(f'Start Complete Process')
 
             if activate_stopwords == 'sim':
-                print('convert text in tokens')
-                df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
-                print(f'remove stop words from text \n {df[column_text].head(5)}')
-                df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
-                print(f'convert tokens in string \n {df[column_text].head(5)}')
-                df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
-                print(f'text without stop words \n {df[column_text].head(5)}')
+                logger.info('Using StopWords')
+                df = TransforDatas.stop_words_text(df=df, column_text=column_text, additional_stop_words=additional_stop_words)
 
-            print(f'remove special characters and pontuation of column_text')
-            df[column_text] =  df[column_text].apply(lambda x: self.udf_clean_text(x))
+            logger.info('Start Text Mining')
+            df = TransforDatas.text_mining(df=df, column_text=column_text)
 
-            print('collect words and find in column_text')
-            print(f'dict: {list_pattern}')
-            try:
-                for key in list_pattern:
-                    if type_find == 'fixo':
-                        df[key] =  df[column_text].apply(lambda x: self.udf_type_keywords(x,list_pattern[key],mode="dictionary"))
-                    else:
-                        df[key] =  df[column_text].apply(lambda x: self.pattern_matcher(x,list_pattern[key],mode="dictionary"))
-            except IOError as e:
-                print(f'não tem mais listas para rodar dados {e}')
-            pass
+            logger.info('Start Word Search')
+            df = TransforDatas.word_search(df=df, list_pattern=list_pattern, type_find=type_find, column_text=column_text)
+            
+            logger.info('Send Some Statistics of DataFrame')
+            df = TransforDatas.statistics_dataframe(df=df, column_text=column_text)
 
-            print('check numbers words by rows')
-            df['numbers_words'] = df[column_text].apply(lambda x: len(str(x).split(' ')))
-
-            df_mim = df[df['numbers_words']<=3]
-            print(f'numbers of rows < 3 words from line {df_mim["numbers_words"].count()}')
-
-            df_max = df[df['numbers_words']>3]
-            print(f'numbers of promotors lines {df_max["numbers_words"].count()}')
-
+            logger.info('Separeted DataFrame')
             df_all = df
 
-            print('convert dataframe pandas to pyspark')
-            df_part = df_all[[id_database,column_text]]
+            logger.info('Called Pyspark DataFrame')
+            sparkDF = TransforDatas.convert_dataframe(df=df, id_database=id_database, column_text=column_text, response_time=response_time, filename=filename, prefix=prefix, prefix_sep=prefix_sep, interlocutor=interlocutor)
 
-            spark = self.spark('default')
-            mySchema = StructType([ StructField(id_database, StringType(), True)\
-                       ,StructField(column_text, StringType(), True)])
+            logger.info('remove null values of dataset')
+            sparkDF = sparkDF.filter((F.col('message_content') != '')
+                        & (F.col('message_content') != ' ')
+                        & (F.col('message_content').isNotNull()))
 
-            sparkDF = spark.createDataFrame(df_part,schema=mySchema)
-            print(f'{sparkDF.printSchema()}')
+            logger.debug(f'count rows after remove null values {sparkDF.count()}')   
 
-            print('remove null values of dataset')
-            sparkDF = sparkDF.filter(
-                            (F.col(column_text) != '')
-                            & (F.col(column_text) != ' ')
-                            & (F.col(column_text).isNotNull()
-                            ))
+            logger.debug('created a new collect dict of interlocutor')
+            out = dict()
+            for key, index in interlocutor.items():
+                out = {'message_author':index}
+            logger.debug(f'new collect dict {out}')
 
-            print(f'count rows after remove null values {sparkDF.count()}')
-            print(f'{sparkDF.show(5,truncate=False)}')          
-
-            print('process bigrams and trigrams of column_text')
-            output_prefix =  'countent'
-            df_pandas, model = self.most_relevant_ngram(
-                sparkDF, column_text, id_field=id_database, output_column_prefix=output_prefix
-            )
-            print(f'dataframe with wordCloud ..{df_pandas.show(5,truncate=False)}')
-
-            print('convert to pandas again')
-            df = df_pandas.toPandas()
-
-            print(f'dataframe old {list(df_all.columns)}')
-            print(f'dataframe new {list(df.columns)}')
-
-            df_all[id_database] = df_all[id_database].astype(str)          
+            logger.debug('created a original column')
+            if 'original_message' not in df.columns:
+                sparkDF = sparkDF.withColumn('original_message', F.col('message_content'))            
             
-            df_merge = pd.concat([df_all, df], axis=1)
-            print(f'joined dataframes {list(df_merge.columns)}  \n and numbers of rows is {df_merge["numbers_words"].count()}')
+            logger.info('agroup all menssages for ticket')
+            sparkDF = self.group_df(df=sparkDF, interlocutor=out, message_content='message_content')       
+
+            logger.info('process bigrams and trigrams of column_text')
+            output_prefix =  'countent'
+            df_pandas, _ = self.most_relevant_ngram(
+                sparkDF, 'all_messages', id_field=id_database, output_column_prefix=output_prefix
+            )
+
+            logger.debug(f'columns process in most relevant ngrams {df_pandas.printSchema()}')
+            
+            logger.info('Merge DataFrames')
+            df = TransforDatas.merge_dataframe(df=df_pandas, df_all=df_all)
 
         if whats_process == 'partial':
             print(f'Start Partial Process')
 
             if activate_stopwords == 'sim':
-                print('convert text in tokens')
-                df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
-                print(f'remove stop words from text \n {df[column_text].head(5)}')
-                df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
-                print(f'convert tokens in string \n {df[column_text].head(5)}')
-                df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
-                print(f'text without stop words \n {df[column_text].head(5)}')            
+                logger.info('Using StopWords')
+                df = TransforDatas.stop_words_text(df=df, column_text=column_text, additional_stop_words=additional_stop_words)
 
-            print('collect words and find in column_text')
-            print(f'dict: {list_pattern}')
-            try:
-                for key in list_pattern:
-                    if type_find == 'fixo':
-                        df[key] =  df[column_text].apply(lambda x: self.udf_type_keywords(x,list_pattern[key],mode="dictionary"))
-                    else:
-                        df[key] =  df[column_text].apply(lambda x: self.pattern_matcher(x,list_pattern[key],mode="dictionary"))
-            except IOError as e:
-                print(f'não tem mais listas para rodar dados {e}')
-            pass
+            logger.info('Start Word Search')
+            df = TransforDatas.word_search(df=df, list_pattern=list_pattern, type_find=type_find, column_text=column_text)
+            
+            logger.info('Send Some Statistics of DataFrame')
+            df = TransforDatas.statistics_dataframe(df=df, column_text=column_text)
 
-            print('check numbers words by rows')
-            df['numbers_words'] = df[column_text].apply(lambda x: len(str(x).split(' ')))
-
-            df_mim = df[df['numbers_words']<=3]
-            print(f'numbers of rows < 3 words from line {df_mim["numbers_words"].count()}')
-
-            df_max = df[df['numbers_words']>3]
-            print(f'numbers of promotors lines {df_max["numbers_words"].count()}')
-
+            logger.info('Separeted DataFrame')
             df_all = df
 
-            print('convert dataframe pandas to pyspark')
-            df_part = df_all[[id_database,column_text]]
+            logger.info('Called Pyspark DataFrame')
+            sparkDF = TransforDatas.convert_dataframe(df=df, id_database=id_database, column_text=column_text, response_time=response_time, filename=filename, prefix=prefix, prefix_sep=prefix_sep, interlocutor=interlocutor)
 
-            spark = self.spark('default')
-            mySchema = StructType([ StructField(id_database, StringType(), True)\
-                       ,StructField(column_text, StringType(), True)])
+            logger.info('remove null values of dataset')
+            sparkDF = sparkDF.filter((F.col('message_content') != '')
+                        & (F.col('message_content') != ' ')
+                        & (F.col('message_content').isNotNull()))
 
-            sparkDF = spark.createDataFrame(df_part,schema=mySchema)
-            print(f'{sparkDF.printSchema()}')
+            logger.debug(f'count rows after remove null values {sparkDF.count()}')   
 
-            print('remove null values of dataset')
-            sparkDF = sparkDF.filter(
-                            (F.col(column_text) != '')
-                            & (F.col(column_text) != ' ')
-                            & (F.col(column_text).isNotNull()
-                            ))
+            logger.debug('created a new collect dict of interlocutor')
+            out = dict()
+            for key, index in interlocutor.items():
+                out = {'message_author':index}
+            logger.debug(f'new collect dict {out}')
 
-            print(f'count rows after remove null values {sparkDF.count()}')
-            print(f'{sparkDF.show(5,truncate=False)}')          
+            logger.debug('created a original column')
+            if 'original_message' not in df.columns:
+                sparkDF = sparkDF.withColumn('original_message', F.col('message_content'))            
+            
+            logger.info('agroup all menssages for ticket')
+            sparkDF = self.group_df(df=sparkDF, interlocutor=out, message_content='message_content')       
 
-            print('process bigrams and trigrams of column_text')
+            logger.info('process bigrams and trigrams of column_text')
             output_prefix =  'countent'
-            df_pandas, model = self.most_relevant_ngram(
-                sparkDF, column_text, id_field=id_database, output_column_prefix=output_prefix
+            df_pandas, _ = self.most_relevant_ngram(
+                sparkDF, 'all_messages', id_field=id_database, output_column_prefix=output_prefix
             )
-            print(f'dataframe with wordCloud ..{df_pandas.show(5,truncate=False)}')
-
-            print('convert to pandas again')
-            df = df_pandas.toPandas()
-
-            print(f'dataframe old {list(df_all.columns)}')
-            print(f'dataframe new {list(df.columns)}')
             
-            df_all[id_database] = df_all[id_database].astype(str)          
-            
-            df_merge = pd.concat([df_all, df], axis=1)
-            print(f'joined dataframes {list(df_merge.columns)}  \n and numbers of rows is {df_merge["numbers_words"].count()}')
+            logger.info('Merge DataFrames')
+            df = TransforDatas.merge_dataframe(df=df_pandas, df_all=df_all)
 
         if whats_process == 'only_keywords':
             print(f'Start Only KeyWords Find Process')
 
             if activate_stopwords == 'sim':
-                print('convert text in tokens')
-                df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
-                print(f'remove stop words from text \n {df[column_text].head(5)}')
-                df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
-                print(f'convert tokens in string \n {df[column_text].head(5)}')
-                df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
-                print(f'text without stop words \n {df[column_text].head(5)}')            
+                logger.info('Using StopWords')
+                df = TransforDatas.stop_words_text(df=df, column_text=column_text, additional_stop_words=additional_stop_words)
 
-            print('collect words and find in column_text')
-            print(f'dict: {list_pattern}')
-            try:
-                for key in list_pattern:
-                    if type_find == 'fixo':
-                        df[key] =  df[column_text].apply(lambda x: self.udf_type_keywords(x,list_pattern[key],mode="dictionary"))
-                    else:
-                        df[key] =  df[column_text].apply(lambda x: self.pattern_matcher(x,list_pattern[key],mode="dictionary"))
-            except IOError as e:
-                print(f'não tem mais listas para rodar dados {e}')
-            pass
-            df_merge = df                           
+            logger.info('Start Word Search')
+            df = TransforDatas.word_search(df=df, list_pattern=list_pattern, type_find=type_find, column_text=column_text)
+            
+            logger.info('Send Some Statistics of DataFrame')
+            df = TransforDatas.statistics_dataframe(df=df, column_text=column_text)
 
-        print('save csf file')
-        filename_renomead = f'{filename}_tratado'
-        file_save = f'{filename_renomead}.csv'
-        df_merge.to_csv(f'{PATH_SAVE}/{file_save}', sep=';',encoding='utf-8',index=False)
-        print('Finishing Process')
-        
-        return df_merge
+        logger.info('Finishing Process and Save csv File')
+        df = TransforDatas.save_file(df, filename=filename, meth=None)
 
+        return df
 
-    def spark(mode='default') -> SparkSession:
-        """Retrieve current spark session.
-
-        :param mode: str
-            The session mode. Should be either "default" or "test".
-
-        :return: SparkSession
-        """
-        print(f'[INFO] Creating {mode} Spark Session')
-        if mode == 'default':
-            return SparkSession.builder.config("spark.driver.memory", "12g").getOrCreate()
-        else:
-            raise ValueError(f'Illegal value "{mode}" mode parameter. '
-                            'It should be either "default", "test" or "deltalake".')
 
 __all__ = ['call_process']

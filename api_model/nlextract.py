@@ -8,22 +8,22 @@ import sys
 import unicodedata
 import nltk
 
-from nltk import FreqDist
-from nltk import stem
-from nltk import download,data
-from nltk.stem import WordNetLemmatizer
 from nltk.util import ngrams
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 
 from pyspark.ml.feature import Tokenizer, StopWordsRemover, NGram, CountVectorizer, IDF
 from pyspark.ml.pipeline import Pipeline
 from pyspark.ml.linalg import SparseVector
-from pyspark.sql import DataFrame, Column, functions as F, types as T
+from pyspark.sql import Window, DataFrame, SparkSession, Column, functions as F, types as T
 from pyspark import StorageLevel
+from .utils.logger import logger
 
 
 NLTK_STOPWORDS = nltk.corpus.stopwords.words('portuguese')
+
+MAX_COLS = {
+    'negativity'
+}
+AVG_COLS = {'response_time'}
 
 class NLExtractor: 
 
@@ -345,6 +345,22 @@ class NLExtractor:
             return max(kv, key=kv.get, default='')
         return ''
 
+
+    def spark(mode='default') -> SparkSession:
+        """Retrieve current spark session.
+
+        :param mode: str
+            The session mode. Should be either "default" or "test".
+
+        :return: SparkSession
+        """
+        logger.info(f'[INFO] Creating {mode} Spark Session')
+        if mode == 'default':
+            return SparkSession.builder.config("spark.driver.memory", "12g").getOrCreate()
+        else:
+            raise ValueError(f'Illegal value "{mode}" mode parameter. '
+                            'It should be either "default", "test" or "deltalake".')        
+
     @classmethod
     def most_relevant_ngram(self,
         x: DataFrame,
@@ -491,4 +507,158 @@ class NLExtractor:
 
         return x, model
     #TO-DO: Datetime Converter
+    
+    @classmethod
+    def group_df(self, df, interlocutor, message_content):
+        print('Grouping messages into one unique record')
 
+        schema = []
+
+        logger.debug(f'Message Author Column: message_author')
+        logger.debug(f'Message content Column: {message_content}')
+
+        bot_identifiers = interlocutor.get('bot_identifiers', [])
+        client_identifiers = interlocutor.get('client_identifiers', [])
+
+        logger.debug(f'{bot_identifiers}, {client_identifiers}')
+
+        has_attendant = F.when(
+            F.col('message_author').isin(bot_identifiers + client_identifiers), F.lit(0)
+        ).otherwise(F.lit(1))
+
+        df = df.withColumn('has_attendant', has_attendant)
+
+        max_columns = [col for col in df.columns if col.endswith('_findint')]
+
+        logger.debug(f'separadores cliente e operador, {interlocutor}')
+
+        msgs_df = self._group_messages_df(df, bot_identifiers, interlocutor)
+        kpis_df = self._group_kpis_df(df, max_columns, 'avg_columns')
+
+
+        return kpis_df.join(msgs_df, on='issue_id', how='full')
+
+
+    @classmethod
+    def _group_messages_df(self, df, bot_identifiers, separators):
+        all_message_columns = self._get_all_messages_columns(df, bot_identifiers, separators)
+
+        return (
+            df.orderBy('issue_id', 'message_order')
+            .groupBy('issue_id')
+            .agg(
+                *all_message_columns,
+                F.array_join(
+                    F.collect_list(
+                        F.concat(
+                            F.col('message_time'),
+                            F.lit(' - Author: '),
+                            F.col('message_author'),
+                            F.lit(' - Message: '),
+                            F.col('original_message'),
+                        )
+                    ),
+                    '\n---\n',
+                ).alias('original_messages'),
+            )
+        )
+
+    @classmethod
+    def _group_kpis_df(self, df, additional_max_cols: list, additional_avg_cols: list):
+        ignore_columns = ['issue_id', 'message_content', 'original_message']
+
+        group_max_columns = MAX_COLS.union(additional_max_cols).intersection(df.columns)
+        group_avg_columns = AVG_COLS.union(additional_avg_cols).intersection(df.columns)
+        group_columns = set(df.columns).difference(group_max_columns.union(group_avg_columns).union(ignore_columns))
+
+        logger.debug(f'MAX columns: {group_max_columns}')
+        logger.debug(f'AVG columns: {group_avg_columns}')
+        logger.debug(f'FIRST columns: {group_columns}')
+
+        # !TODO: first is non-deterministic, could be getting something other than first record
+        kpis_df = (
+            df.orderBy('issue_id', 'message_order')
+            .groupBy('issue_id')
+            .agg(
+                *(F.first(col).alias(col) for col in group_columns),
+                *(F.max(col).alias(col) for col in group_max_columns),
+                *(F.round(F.avg(col)).alias(f'average_{col}') for col in group_avg_columns),
+            )
+        )
+
+        return kpis_df
+
+    @classmethod
+    def _get_all_messages_columns(self, df, bot_identifiers, separators):
+        all_messages_col = self._join_messages(df, 'all_messages', bot_identifiers)
+
+        columns = [all_messages_col]
+
+        for col_separator, vals_separator in separators.items():
+            for val_separator in vals_separator:
+                first_value = val_separator.split('|')[0]
+                alias = f'all_messages_{col_separator}_{first_value}'
+                condition = F.col(col_separator).isin(val_separator.split('|'))
+
+                current_all_messages_col = self._join_messages(df, alias, bot_identifiers, condition)
+
+                columns.append(current_all_messages_col)
+
+        return columns
+
+    @classmethod
+    def _join_messages(self, df, alias, bot_identifiers, condition=None):
+        if condition is None:
+            condition = F.lit(True)
+
+        logger.debug(f'Joining messages to {alias}')      
+
+        return F.array_join(
+            F.collect_list(
+                F.when(
+                    (~F.col('message_author').isin(bot_identifiers)) & (condition),
+                    F.col('message_content'),
+                )
+            ),
+            ' ',
+        ).alias(alias)
+
+
+    @classmethod
+    def populate_columns(self,df, columns):
+        """
+        Creates and fills the specified columns with values that are deducted from other columns that are present and correctly filled in the DataFrame
+
+        :param df: Input DataFrame
+        :type df: DataFrame
+        :param columns: Columns that will be created and filled
+        :type columns: list
+        :return: DataFrame with the specified columns created and filled
+        :rtype: DataFrame
+        """
+
+        if 'message_order' in columns:
+            df = self.populate_message_order(df)
+        return df
+
+    @classmethod
+    def populate_message_order(self, df, id_field = 'issue_id', message_time = 'message_time'):
+        """
+        Creates and fills the `message_order` column
+
+        Based on the id of the conversation and the message time, the order of the messages is deducted and filled
+
+        :param df: Input DataFrame
+        :type df: DataFrame
+        :param id_field: The column that has the conversation id, defaults to 'issue_id'
+        :type id_field: str
+        :param message_time: The column that contains the time of each message, defaults to 'message_time'
+        :type message_time: str
+        :return: DataFrame with the message_order filled
+        :rtype: DataFrame
+        """
+
+        print('Generating `message_order` column')
+        win = Window.partitionBy(id_field).orderBy(F.col(message_time).asc())
+        df = df.withColumn('message_order', F.row_number().over(win))
+        return df
