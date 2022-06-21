@@ -15,7 +15,7 @@ from pyspark.ml.pipeline import Pipeline
 from pyspark.ml.linalg import SparseVector
 from pyspark.sql import Window, DataFrame, SparkSession, Column, functions as F, types as T
 from pyspark import StorageLevel
-from .utils.logger import logger
+from api_model.utils.logger import logger
 
 
 NLTK_STOPWORDS = nltk.corpus.stopwords.words('portuguese')
