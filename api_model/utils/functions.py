@@ -8,11 +8,11 @@ import os
 import re
 
 
-#PATH_READ = '/content/'
-#PATH_SAVE = '/content/drive/My Drive/'
+PATH_READ = '/content/'
+PATH_SAVE = '/content/drive/My Drive/'
 
-PATH_READ = '/opt/dna/find-keywords/datalake/'
-PATH_SAVE = '/opt/dna/find-keywords/datalake/'
+#PATH_READ = '/opt/dna/find-keywords/datalake/'
+#PATH_SAVE = '/opt/dna/find-keywords/datalake/'
 
 
 class TransforDatas(NLExtractor):
