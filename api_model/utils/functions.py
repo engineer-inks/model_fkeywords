@@ -29,10 +29,10 @@ class TransforDatas(NLExtractor):
         logger.info('convert dataframe pandas to pyspark')
         df = df.rename(columns={id_database:'issue_id', column_text:'message_content', response_time:'message_time', column_name:'message_author'})
 
-        logger.info('Select Columns to Word Search')
-        df_max_columns = self.filter_columns(df=df)
+        # logger.info('Select Columns to Word Search')
+        # df_max_columns = self.filter_columns(df=df)
 
-        df = df[[col for col in df.columns if col in df_max_columns]]
+        # df = df[[col for col in df.columns if col in df_max_columns]]
         logger.debug(f'save temp file')
         df = self.save_file(df=df, filename=filename, meth='temp')
 
@@ -43,8 +43,6 @@ class TransforDatas(NLExtractor):
         dfPyspark = self.populate_message_order(dfPyspark, id_field='issue_id', message_time='message_time')    
 
         logger.debug(f'print new columns of pyspark dataframe: {dfPyspark.printSchema()}')
-        # self.delete_file(filename=filename)
-        # logger.debug('file temp deleted')
 
         return dfPyspark
 
@@ -227,9 +225,14 @@ class TransforDatas(NLExtractor):
     @classmethod
     def delete_file(self, filename):
 
-        if({PATH_SAVE}/{filename}):
-            logger.debug(f'deleting file: {PATH_SAVE}/{filename}')
-            os.remove({PATH_SAVE}/{filename})
+        filepath = f'{PATH_SAVE}/{filename}.csv'
+
+        if os.path.exists(filepath):
+            logger.info(f'deleting file: {filepath}')
+            os.remove(filepath)
+        
+        else:
+            logger.info("Can not delete the file as it doesn't exists")
 
         return None
      

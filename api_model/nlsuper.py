@@ -1,8 +1,8 @@
 from api_model.nlextract import NLExtractor
 import pandas as pd
-from .utils.functions import TransforDatas
+from api_model.utils.functions import TransforDatas
 from pyspark.sql import SparkSession, functions as F, types as T
-from .utils.logger import logger
+from api_model.utils.logger import logger
 
 
 class NlExtractorProcess(NLExtractor):
@@ -86,9 +86,6 @@ class NlExtractorProcess(NLExtractor):
             logger.info('Send Some Statistics of DataFrame')
             df = TransforDatas.statistics_dataframe(df=df, column_text=column_text)
 
-            logger.info('Separeted DataFrame')
-            df_all = df
-
             logger.info('Called Pyspark DataFrame')
             sparkDF = TransforDatas.convert_dataframe(df=df, id_database=id_database, column_text=column_text, response_time=response_time, filename=filename, prefix=prefix, prefix_sep=prefix_sep, interlocutor=interlocutor)
 
@@ -112,16 +109,18 @@ class NlExtractorProcess(NLExtractor):
             logger.info('agroup all menssages for ticket')
             sparkDF = self.group_df(df=sparkDF, interlocutor=out, message_content='message_content')       
 
+            logger.info(f'numbers of rows agrouped {sparkDF.count()}')
+
             logger.info('process bigrams and trigrams of column_text')
             output_prefix =  'countent'
-            df_pandas, _ = self.most_relevant_ngram(
+            sparkDF, _ = self.most_relevant_ngram(
                 sparkDF, 'all_messages', id_field=id_database, output_column_prefix=output_prefix
             )
 
-            logger.debug(f'columns process in most relevant ngrams {df_pandas.printSchema()}')
-            
-            logger.info('Merge DataFrames')
-            df = TransforDatas.merge_dataframe(df=df_pandas, df_all=df_all)
+            logger.debug(f'columns process in most relevant ngrams {sparkDF.printSchema()}')
+            df = sparkDF.toPandas()            
+            # logger.info('Merge DataFrames')
+            # df = TransforDatas.merge_dataframe(df=df_pandas, df_all=df_all)
 
         if whats_process == 'partial':
             print(f'Start Partial Process')
@@ -136,9 +135,6 @@ class NlExtractorProcess(NLExtractor):
             logger.info('Send Some Statistics of DataFrame')
             df = TransforDatas.statistics_dataframe(df=df, column_text=column_text)
 
-            logger.info('Separeted DataFrame')
-            df_all = df
-
             logger.info('Called Pyspark DataFrame')
             sparkDF = TransforDatas.convert_dataframe(df=df, id_database=id_database, column_text=column_text, response_time=response_time, filename=filename, prefix=prefix, prefix_sep=prefix_sep, interlocutor=interlocutor)
 
@@ -164,12 +160,12 @@ class NlExtractorProcess(NLExtractor):
 
             logger.info('process bigrams and trigrams of column_text')
             output_prefix =  'countent'
-            df_pandas, _ = self.most_relevant_ngram(
+            sparkDF, _ = self.most_relevant_ngram(
                 sparkDF, 'all_messages', id_field=id_database, output_column_prefix=output_prefix
             )
-            
-            logger.info('Merge DataFrames')
-            df = TransforDatas.merge_dataframe(df=df_pandas, df_all=df_all)
+            df = sparkDF.toPandas()
+            # logger.info('Merge DataFrames')
+            # df = TransforDatas.merge_dataframe(df=df_pandas, df_all=df_all)
 
         if whats_process == 'only_keywords':
             print(f'Start Only KeyWords Find Process')
@@ -186,6 +182,9 @@ class NlExtractorProcess(NLExtractor):
 
         logger.info('Finishing Process and Save csv File')
         df = TransforDatas.save_file(df, filename=filename, meth=None)
+
+        TransforDatas.delete_file(filename=f'{filename}_temp')
+        logger.debug('file temp deleted')        
 
         return df
 
