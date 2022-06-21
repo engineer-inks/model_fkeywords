@@ -1,4 +1,4 @@
-from .colorize import Colorize
+from api_model.utils.colorize import Colorize
 from datetime import datetime
 from pytz import timezone
 

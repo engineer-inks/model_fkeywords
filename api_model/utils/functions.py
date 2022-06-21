@@ -3,9 +3,10 @@ from xmlrpc.client import DateTime
 import pandas as pd
 from api_model.nlextract import NLExtractor
 from pyspark.sql import functions as F, types as T
-from .logger import logger
+from api_model.utils.logger import logger
 import os
 import re
+
 
 
 PATH_READ = '/content/'
