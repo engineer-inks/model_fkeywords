@@ -9,6 +9,7 @@ import unicodedata
 import nltk
 
 from nltk.util import ngrams
+from nltk.tokenize import word_tokenize
 
 from pyspark.ml.feature import Tokenizer, StopWordsRemover, NGram, CountVectorizer, IDF
 from pyspark.ml.pipeline import Pipeline
@@ -109,7 +110,8 @@ class NLExtractor:
 
     @classmethod
     def tokenizer(self, text):
-        text = re.split(r'\s+',text)
+        #text = re.split(r'\s+',text)
+        text = word_tokenize(text)
         return text
 
 
@@ -119,7 +121,19 @@ class NLExtractor:
         if len(additional_stop_words) > 0:
             for i in additional_stop_words:
                 stop_words.append(i)
-        return [word for word in text_tokens if not word in stop_words]
+        #return [word for word in text_tokens if not word in stop_words]
+        return ' '.join([word for word in text_tokens.split() if word not in stop_words])
+
+
+    @classmethod
+    def new_stopwords(self, text_tokens, additional_stop_words = []):
+        stop_words = NLTK_STOPWORDS
+        if len(additional_stop_words) > 0:
+            for i in additional_stop_words:
+                stop_words.append(i)        
+        pattern = re.compile(r'\b(' + r'|'.join(stop_words) + r')\b\s*')
+        text_tokens = pattern.sub('', text_tokens)
+        return text_tokens
 
     
     @classmethod

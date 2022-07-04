@@ -90,13 +90,19 @@ class TransforDatas(NLExtractor):
     @classmethod
     def stop_words_text(self, df, column_text, additional_stop_words):
 
-        logger.info('convert text in tokens')
-        df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
-        logger.info(f'remove stop words from text \n {df[column_text].head(5)}')
+        # logger.info('convert text in tokens')
+        # df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
+        # logger.info(f'remove stop words from text \n {df[column_text].head(5)}')
+        logger.info('remove stop words from text')
+        logger.info(f'result before of process stop words \n {df[column_text].head(5)}')
         df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
-        logger.info(f'convert tokens in string \n {df[column_text].head(5)}')
-        df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
-        logger.info(f'text without stop words \n {df[column_text].head(5)}')
+        logger.info(f'result after of process stop words \n {df[column_text].head(5)}')
+        # df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
+        # logger.info(f'text without stop words \n {df[column_text].head(5)}')
+
+        # logger.info('remove stop words from text')
+        # df[column_text] =  df[column_text].apply(lambda x: self.new_stopwords(x, additional_stop_words)) 
+        # logger.info(f'text without stop words \n {df[column_text].head(5)}')
 
         return df
 
