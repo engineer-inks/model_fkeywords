@@ -10,11 +10,11 @@ import re
 
 
 
-#PATH_READ = '/content/'
-#PATH_SAVE = '/content/drive/My Drive/'
+PATH_READ = '/content/'
+PATH_SAVE = '/content/drive/My Drive/'
 
-PATH_READ = '/opt/dna/find-keywords/datalake/'
-PATH_SAVE = '/opt/dna/find-keywords/datalake/'
+#PATH_READ = '/opt/dna/find-keywords/datalake/'
+#PATH_SAVE = '/opt/dna/find-keywords/datalake/'
 
 
 class TransforDatas(NLExtractor):
@@ -30,10 +30,6 @@ class TransforDatas(NLExtractor):
         logger.info('convert dataframe pandas to pyspark')
         df = df.rename(columns={id_database:'issue_id', column_text:'message_content', response_time:'message_time', column_name:'message_author'})
 
-        # logger.info('Select Columns to Word Search')
-        # df_max_columns = self.filter_columns(df=df)
-
-        # df = df[[col for col in df.columns if col in df_max_columns]]
         logger.debug(f'save temp file')
         df = self.save_file(df=df, filename=filename, meth='temp')
 
@@ -94,19 +90,10 @@ class TransforDatas(NLExtractor):
     @classmethod
     def stop_words_text(self, df, column_text, additional_stop_words):
 
-        # logger.info('convert text in tokens')
-        # df[column_text] =  df[column_text].apply(lambda x: self.tokenizer(x))
-        # logger.info(f'remove stop words from text \n {df[column_text].head(5)}')
         logger.info('remove stop words from text')
         logger.info(f'result before of process stop words \n {df[column_text].head(5)}')
         df[column_text] =  df[column_text].apply(lambda x: self.filter_stop_words(x, additional_stop_words))
         logger.info(f'result after of process stop words \n {df[column_text].head(5)}')
-        # df[column_text] =  df[column_text].apply(lambda x: self.convert_list_string(x))
-        # logger.info(f'text without stop words \n {df[column_text].head(5)}')
-
-        # logger.info('remove stop words from text')
-        # df[column_text] =  df[column_text].apply(lambda x: self.new_stopwords(x, additional_stop_words)) 
-        # logger.info(f'text without stop words \n {df[column_text].head(5)}')
 
         return df
 

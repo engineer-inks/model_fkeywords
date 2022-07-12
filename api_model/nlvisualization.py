@@ -29,8 +29,8 @@ nltk.download('punkt')
 
 NLTK_STOPWORDS = nltk.corpus.stopwords.words('portuguese')
 
-#PATH_READ = '/content/drive/My Drive/'
-PATH_READ = '/opt/dna/find-keywords/datalake'
+PATH_READ = '/content/drive/My Drive/'
+#PATH_READ = '/opt/dna/find-keywords/datalake'
 
 class NlVisualization:
 
