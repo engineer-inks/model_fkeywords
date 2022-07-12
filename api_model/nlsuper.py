@@ -20,7 +20,8 @@ class NlExtractorProcess(NLExtractor):
                 activate_stopwords: str,
                 interlocutor: dict,
                 response_time: str,
-                format_data: str
+                format_data: str,
+                encoding: str
                 ):
             
         self.filename = filename
@@ -36,6 +37,7 @@ class NlExtractorProcess(NLExtractor):
         self.interlocutor = interlocutor
         self.response_time = response_time
         self.format_data = format_data
+        self.encoding = encoding
 
         super().__init__()
     
@@ -53,7 +55,8 @@ class NlExtractorProcess(NLExtractor):
         activate_stopwords,
         interlocutor,
         response_time,
-        format_data):
+        format_data,
+        encoding):
         
         """
         whats_process = 'complete'
@@ -65,7 +68,7 @@ class NlExtractorProcess(NLExtractor):
         """
 
         logger.info('Load CSV')
-        df = TransforDatas.load_file(prefix, filename, prefix_sep, meth=None)
+        df = TransforDatas.load_file(prefix, filename, prefix_sep, encoding, meth=None)
 
         logger.info('Normalize Datas Values')
         df = TransforDatas.normalize_data(df=df, column_text=column_text, response_time=response_time, format_data=format_data, id_database=id_database)
@@ -87,7 +90,7 @@ class NlExtractorProcess(NLExtractor):
             df = TransforDatas.statistics_dataframe(df=df, column_text=column_text)
 
             logger.info('Called Pyspark DataFrame')
-            sparkDF = TransforDatas.convert_dataframe(df=df, id_database=id_database, column_text=column_text, response_time=response_time, filename=filename, prefix=prefix, prefix_sep=prefix_sep, interlocutor=interlocutor)
+            sparkDF = TransforDatas.convert_dataframe(df=df, id_database=id_database, column_text=column_text, response_time=response_time, filename=filename, prefix=prefix, prefix_sep=prefix_sep, interlocutor=interlocutor, encoding=encoding)
 
             logger.info('remove null values of dataset')
             sparkDF = sparkDF.filter((F.col('message_content') != '')
@@ -182,6 +185,7 @@ class NlExtractorProcess(NLExtractor):
 
         logger.info('Finishing Process and Save csv File')
         df = TransforDatas.save_file(df, filename=filename, meth=None)
+        logger.info(f'schema of dataframe saved: {df.info()}')
 
         TransforDatas.delete_file(filename=f'{filename}_temp')
         logger.debug('file temp deleted')        

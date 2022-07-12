@@ -20,6 +20,7 @@ from api_model.utils.logger import logger
 
 
 NLTK_STOPWORDS = nltk.corpus.stopwords.words('portuguese')
+NLP = spacy.load("pt_core_news_sm")
 
 MAX_COLS = {
     'negativity'
@@ -144,21 +145,12 @@ class NLExtractor:
                 out.append(i)
         return ' '.join(' '.join(out).strip().split())
 
-
+    @classmethod
     def lemmatizer(self, lista, parser='spacy'):
-        nlp = NLExtractor._instance.spacy_nlp
-        if parser == 'spacy':
-            
-            if self._spacy_load == None:
-                nlp = self.load_spacy_modules()
-            else:
-                nlp = self._spacy_load
-
-            if nlp == None:
-                return []
         try:
             out = []
-            for x in nlp(str(lista)):
+            lista = self.tokenizer(lista)
+            for x in NLP(str(lista)):
                 if ( not x.is_punct and
                     not x.is_space and
                     not x.is_stop and
@@ -169,8 +161,8 @@ class NLExtractor:
                         out.append(self.remove_special_characters(x.lemma_))
                     else:
                         out.append(self.remove_special_characters(x.text))
-            #return ' '.join(' '.join(out).strip().split())
-            return list(dict.fromkeys(out))
+            return ' '.join(' '.join(out).strip().split())
+            #return list(dict.fromkeys(out))
         except IOError as e:
             print('Error text_lema', e)        
             pass

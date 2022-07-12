@@ -4,16 +4,17 @@ import pandas as pd
 from api_model.nlextract import NLExtractor
 from pyspark.sql import functions as F, types as T
 from api_model.utils.logger import logger
+from datetime import date
 import os
 import re
 
 
 
-PATH_READ = '/content/'
-PATH_SAVE = '/content/drive/My Drive/'
+#PATH_READ = '/content/'
+#PATH_SAVE = '/content/drive/My Drive/'
 
-#PATH_READ = '/opt/dna/find-keywords/datalake/'
-#PATH_SAVE = '/opt/dna/find-keywords/datalake/'
+PATH_READ = '/opt/dna/find-keywords/datalake/'
+PATH_SAVE = '/opt/dna/find-keywords/datalake/'
 
 
 class TransforDatas(NLExtractor):
@@ -21,7 +22,7 @@ class TransforDatas(NLExtractor):
         self.data_type =[]
     
     @classmethod
-    def convert_dataframe(self, df, id_database, column_text, response_time, filename, prefix, prefix_sep, interlocutor):
+    def convert_dataframe(self, df, id_database, column_text, response_time, filename, prefix, prefix_sep, interlocutor, encoding):
 
         column_name = ' '.join([str(item) for item in list(interlocutor.keys())])
         logger.info(f'rename valus of interlocutor column: {column_name}')
@@ -37,7 +38,7 @@ class TransforDatas(NLExtractor):
         df = self.save_file(df=df, filename=filename, meth='temp')
 
         logger.debug(f'load temp file')
-        dfPyspark = self.load_file(prefix=prefix, filename=filename, prefix_sep=prefix_sep, meth='temp')
+        dfPyspark = self.load_file(prefix=prefix, filename=filename, prefix_sep=prefix_sep, encoding=encoding, meth='temp')
 
         logger.info('created message order')
         dfPyspark = self.populate_message_order(dfPyspark, id_field='issue_id', message_time='message_time')    
@@ -84,6 +85,9 @@ class TransforDatas(NLExtractor):
 
         logger.info(f'remove special characters and pontuation of column_text')
         df[column_text] =  df[column_text].apply(lambda x: self.udf_clean_text(x))
+
+        logger.info('tranform text in text lemma')
+        df[column_text] =  df[column_text].apply(lambda x: self.lemmatizer(x))
 
         return df
 
@@ -147,11 +151,16 @@ class TransforDatas(NLExtractor):
         df[column_text] = df[column_text].str.lower()
 
         logger.info('normalize id column')
-        df[id_database] = df[id_database].astype(str)      
+        df[id_database] = df[id_database].astype(str)   
 
-        logger.info('convert date column string in date column timestamp')
-        df[response_time] = df[response_time].apply(lambda x: self.convert_datetime(x, format_data))
-        logger.debug(f'dataformat: {df[response_time].head(5)}')
+        if response_time != '':
+            logger.info('convert date column string in date column timestamp')
+            df[response_time] = df[response_time].apply(lambda x: self.convert_datetime(x, format_data))
+            logger.debug(f'dataformat: {df[response_time].head(5)}')
+        else:
+            logger.info('create date column timestamp')
+            df[response_time] =pd.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            logger.debug(f'dataformat: {df[response_time].head(5)}')
 
         return df
 
@@ -195,7 +204,7 @@ class TransforDatas(NLExtractor):
 
     
     @classmethod
-    def load_file(self, prefix, filename, prefix_sep, meth):
+    def load_file(self, prefix, filename, prefix_sep, encoding, meth):
 
         if meth == 'temp':
 
@@ -222,7 +231,7 @@ class TransforDatas(NLExtractor):
                 df = pd.read_excel(f"{PATH_READ}/{filename}.{prefix}", engine='openpyxl')
                 logger.debug(f'Schema of dataframe is {df.info()}')
             if prefix == 'csv':
-                df = pd.read_csv(f"{PATH_READ}/{filename}.{prefix}", sep=prefix_sep, encoding='latin-1')
+                df = pd.read_csv(f"{PATH_READ}/{filename}.{prefix}", sep=prefix_sep, encoding=encoding)
                 logger.debug(f'Schema of dataframe is {df.info()}')
 
         return df
