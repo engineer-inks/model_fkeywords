@@ -7,7 +7,10 @@ from api_model.utils.logger import logger
 from datetime import date
 import os
 import re
+from pytz import timezone
 
+
+sao_paulo_timezone = timezone('America/Sao_Paulo')
 
 
 PATH_READ = '/content/'
@@ -158,7 +161,7 @@ class TransforDatas(NLExtractor):
         if dateformat and isinstance(dateformat, str):
             for dtformat in formats.split('|'):
                 try:
-                    time = datetime.strftime(dateformat, dtformat)
+                    time = datetime.astimezone(sao_paulo_timezone).strftime(dateformat, dtformat)
                     return time
                 except Exception:
                     continue
