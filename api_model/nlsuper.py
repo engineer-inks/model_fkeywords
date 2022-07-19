@@ -2,7 +2,7 @@ from api_model.nlextract import NLExtractor
 import pandas as pd
 from api_model.utils.functions import TransforDatas
 from pyspark.sql import SparkSession, functions as F, types as T
-from api_model.utils.logger import logger
+from api_model.utils.logger import logger, Colorize
 
 
 class NlExtractorProcess(NLExtractor):
@@ -114,8 +114,8 @@ class NlExtractorProcess(NLExtractor):
 
             logger.info(f'numbers of rows agrouped {sparkDF.count()}')
 
-            logger.info('process bigrams and trigrams of column_text')
             output_prefix =  'countent'
+            logger.info(f'Generating wordcloud columns for "{Colorize.get_color("all_messages", color="cyan")}" with prefix "{output_prefix}"')           
             sparkDF, _ = self.most_relevant_ngram(
                 sparkDF, 'all_messages', id_field=id_database, output_column_prefix=output_prefix
             )

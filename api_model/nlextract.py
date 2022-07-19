@@ -405,6 +405,7 @@ class NLExtractor:
         :return: DataFrame containing most relevant word, 2-grams and 3-grams columns
         :rtype: DataFrame
         """
+
         o = x
 
         if isinstance(stop_words, str):
@@ -412,9 +413,6 @@ class NLExtractor:
 
         if where is not None:
             x = o.filter(where)
-
-        if texts_to_filter:
-            x = x.withColumn(text_column, F.replace(text_column, texts_to_filter, F.replacement))            
 
         tokenizer = Tokenizer(inputCol=text_column, outputCol=f'{text_column}_aux_tokenized')
 
@@ -458,32 +456,16 @@ class NLExtractor:
         model = pipeline.fit(x)
         x = model.transform(x)
 
-        word_vocab = model.stages[4].vocabulary
-        bigram_vocab = model.stages[5].vocabulary
-        trigram_vocab = model.stages[6].vocabulary        
-
         word_field = f'{output_column_prefix}_word'
         bi_gram_field = f'{output_column_prefix}_bigram'
         tri_gram_field = f'{output_column_prefix}_trigram'
 
-        def get_argmax_word(vocab, col):
-            @F.udf()
-            def get_argmax_word_(col):
-                y = col.toArray()
-                if texts_to_filter:
-                    y = F.array([-1 if F.contains(vocab[idx], F.replacement) else elem for idx, elem in enumerate(y)])
-                if all(elem <= min_df for elem in y):
-                    return None
-                return vocab[y.argmax().item()]
-            return get_argmax_word_(col)
-
-        x = (x.withColumn(word_field, get_argmax_word(vocab=word_vocab, col=words_idf.getOutputCol()))
-                .withColumn(bi_gram_field, get_argmax_word(vocab=bigram_vocab, col=bigram_idf.getOutputCol()))
-                .withColumn(tri_gram_field, get_argmax_word(vocab=trigram_vocab, col=trigram_idf.getOutputCol()))
-                .drop(bigram.getOutputCol(), trigram.getOutputCol(), tokenizer.getOutputCol(),
-                    words_remover.getOutputCol(), bigram_cv.getOutputCol(),
-                    trigram_cv.getOutputCol(), words_cv.getOutputCol(), words_idf.getOutputCol(),
-                    bigram_idf.getOutputCol(), trigram_idf.getOutputCol()))
+        for field, col, vocabulary in (
+            (word_field, words_idf.getOutputCol(), model.stages[4].vocabulary),
+            (bi_gram_field, bigram_idf.getOutputCol(), model.stages[5].vocabulary),
+            (tri_gram_field, trigram_idf.getOutputCol(), model.stages[6].vocabulary),
+        ):
+            x = x.withColumn(field, self.most_important_ngram(F.array([F.lit(x) for x in vocabulary]), col))
 
         if not keep_intermediate:
             x = x.drop(
@@ -498,7 +480,7 @@ class NLExtractor:
                 bigram_idf.getOutputCol(),
                 trigram_idf.getOutputCol(),
             )
-        
+
         x.persist(StorageLevel.DISK_ONLY)
         x.count()
 
