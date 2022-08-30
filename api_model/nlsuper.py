@@ -80,11 +80,12 @@ class NlExtractorProcess(NLExtractor):
                 logger.info('Using StopWords')
                 df = TransforDatas.stop_words_text(df=df, column_text=column_text, additional_stop_words=additional_stop_words)
 
+            logger.info('Start Word Search')
+            df = TransforDatas.word_search(df=df, list_pattern=list_pattern, type_find=type_find, column_text=column_text)                
+
             logger.info('Start Text Mining')
             df = TransforDatas.text_mining(df=df, column_text=column_text)
 
-            logger.info('Start Word Search')
-            df = TransforDatas.word_search(df=df, list_pattern=list_pattern, type_find=type_find, column_text=column_text)
             
             logger.info('Send Some Statistics of DataFrame')
             df = TransforDatas.statistics_dataframe(df=df, column_text=column_text)
@@ -122,8 +123,6 @@ class NlExtractorProcess(NLExtractor):
 
             logger.debug(f'columns process in most relevant ngrams {sparkDF.printSchema()}')
             df = sparkDF.toPandas()            
-            # logger.info('Merge DataFrames')
-            # df = TransforDatas.merge_dataframe(df=df_pandas, df_all=df_all)
 
         if whats_process == 'partial':
             print(f'Start Partial Process')
